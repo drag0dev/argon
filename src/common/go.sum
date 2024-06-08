@@ -1,0 +1,12 @@
+github.com/aws/aws-sdk-go-v2 v1.27.1 h1:xypCL2owhog46iFxBKKpBcw+bPTX/RJzwNj8uSilENw=
+github.com/aws/aws-sdk-go-v2 v1.27.1/go.mod h1:ffIFB97e2yNsv4aTSGkqtHnppsIJzw7G7BReUZ3jCXM=
+github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.14.0 h1:RXHz/z13XYIOCUxjU8erQm25Hhe9LqtXS3dKXsHWRHs=
+github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.14.0/go.mod h1:TH3KH06Ijq3zujEw5Gb2xzBMQ+WjpCcJYkGUclCu2NQ=
+github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.7 h1:Y0pFOzMrx/c6mVswi99Y9UmBfbBhmFsAzuaJDXTHd0U=
+github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.7/go.mod h1:CYR+43Fe0qazBzSTrIwSK7uYdYVf958kwGF+EQgQqhw=
+github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.20.9 h1:KYj1jyicyjXmWgMFPMBsgZPYoQ3ZO2HZ0u/rnhJ3fZU=
+github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.20.9/go.mod h1:PWKopbFpAtnHJ0paxgo+m3+dGKJ2BqeE1qeo5O4T8w0=
+github.com/aws/smithy-go v1.20.2 h1:tbp628ireGtzcHDDmLT/6ADHidqnwgF57XOXZe6tp4Q=
+github.com/aws/smithy-go v1.20.2/go.mod h1:krry+ya/rV9RDcV/Q16kpu6ypI4K2czasz0NC3qS14E=
+github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
+github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
