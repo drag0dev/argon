@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 type UploadMovieResponse struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
-    SignedHeader http.Header `json:"signedHeader"`
 }
 
 var s3PresignClient *s3.PresignClient;
@@ -77,7 +75,6 @@ func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, 
     res := UploadMovieResponse {
         Url: request.URL,
         Method: request.Method,
-        SignedHeader: request.SignedHeader,
     }
 
     return res, nil

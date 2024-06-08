@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 type SingleVideo struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
-    SignedHeader http.Header `json:"signedHeader"`
     EpisodeNumber uint64     `json:"episodeNumber"`
     SeasonNumber uint64     `json:"seasonNumber"`
 }
@@ -74,7 +72,6 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
             url := SingleVideo {
                 Url: request.URL,
                 Method: request.Method,
-                SignedHeader: request.SignedHeader,
                 SeasonNumber: event.Seasons[seasonIndex].SeasonNumber,
                 EpisodeNumber: event.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber,
             }
