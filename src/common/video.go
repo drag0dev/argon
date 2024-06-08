@@ -27,7 +27,7 @@ type Episode struct {
 }
 
 type Season struct {
-    SeasonNumber uint64    `dynamodbav:"number" json:"seasonNumber"`
+    SeasonNumber uint64    `dynamodbav:"seasonNumber" json:"seasonNumber"`
     // List Type
     Episodes     []Episode `dynamodbav:"episodes" json:"episodes"`
 }
@@ -65,3 +65,4 @@ type Show struct {
 
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
+const ShowTableName = "show"
