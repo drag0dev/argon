@@ -6,22 +6,21 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-    "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
 type UploadMovieResponse struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
-    SignedHeader http.Header `json:"signedHeader"`
 }
 
 var s3PresignClient *s3.PresignClient;
@@ -34,6 +33,9 @@ func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, 
 
     timestamp := time.Now().Unix()
     fileName := fmt.Sprintf("%s-%d.%s", movieUUID, timestamp, event.Video.FileType)
+    // having '/' in the name causes s3 to treat it as a folder
+    fileName = strings.ReplaceAll(fileName, "/", "-")
+
     event.Video.FileName = fileName
 
     // create pre signed url
@@ -73,7 +75,6 @@ func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, 
     res := UploadMovieResponse {
         Url: request.URL,
         Method: request.Method,
-        SignedHeader: request.SignedHeader,
     }
 
     return res, nil

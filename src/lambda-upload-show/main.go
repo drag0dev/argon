@@ -6,22 +6,21 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-    "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
 type SingleVideo struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
-    SignedHeader http.Header `json:"signedHeader"`
     EpisodeNumber uint64     `json:"episodeNumber"`
     SeasonNumber uint64     `json:"seasonNumber"`
 }
@@ -50,6 +49,8 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
                 showUUID, event.Seasons[seasonIndex].SeasonNumber,
                 event.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber,
                 timestamp, event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileType)
+            // having '/' in the name causes s3 to treat it as a folder
+            fileName = strings.ReplaceAll(fileName, "/", "-")
 
             event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName = fileName
 
@@ -71,7 +72,6 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
             url := SingleVideo {
                 Url: request.URL,
                 Method: request.Method,
-                SignedHeader: request.SignedHeader,
                 SeasonNumber: event.Seasons[seasonIndex].SeasonNumber,
                 EpisodeNumber: event.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber,
             }
