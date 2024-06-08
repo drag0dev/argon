@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-    "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
@@ -50,6 +51,8 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
                 showUUID, event.Seasons[seasonIndex].SeasonNumber,
                 event.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber,
                 timestamp, event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileType)
+            // having '/' in the name causes s3 to treat it as a folder
+            fileName = strings.ReplaceAll(fileName, "/", "-")
 
             event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName = fileName
 
