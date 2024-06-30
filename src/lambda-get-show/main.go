@@ -3,10 +3,14 @@ package main
 import (
 	"common"
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -30,13 +34,26 @@ var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
 const expiration = 300 // 5m
 
-func getShow(ctx context.Context, event GetShowEvent) (GetShowResponse, error) {
+func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+    uuid, ok := incomingRequest.QueryStringParameters["uuid"]
+    if (!ok) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    _, ok = incomingRequest.QueryStringParameters["season"]
+    if (!ok) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    _, ok = incomingRequest.QueryStringParameters["episode"]
+    if (!ok) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+
+    season, err := strconv.Atoi(incomingRequest.QueryStringParameters["season"])
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+
+    episode, err := strconv.Atoi(incomingRequest.QueryStringParameters["episode"])
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+
     tableName := common.ShowTableName
     input := &dynamodb.GetItemInput{
         TableName: &tableName,
         Key: map[string]types.AttributeValue {
             "id": &types.AttributeValueMemberS {
-                Value: event.UUID,
+                Value: uuid,
             },
         },
     }
@@ -44,26 +61,26 @@ func getShow(ctx context.Context, event GetShowEvent) (GetShowResponse, error) {
     result, err := dynamodbClient.GetItem(context.TODO(), input)
     if err != nil {
         log.Printf("Error getting show: %v", err)
-        return GetShowResponse{}, errors.New("Error getting show")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error getting show")
     }
 
     if result.Item == nil {
-        return GetShowResponse{}, errors.New("Show does not exist")
+        return common.ErrorResponse(http.StatusBadRequest, "Show does not exist"), nil
     }
 
     var show common.Show
     err = attributevalue.UnmarshalMap(result.Item, &show)
     if err != nil {
         log.Printf("Error unmarshaling show :%v", err)
-        return GetShowResponse{}, errors.New("Error umarshaling show")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling show")
     }
 
     var filename string = ""
     outer: for seasonIndex := 0; seasonIndex < len(show.Seasons); seasonIndex++ {
         for episodeIndex := 0; episodeIndex < len(show.Seasons[seasonIndex].Episodes); episodeIndex++ {
             if (
-            event.Season == show.Seasons[seasonIndex].SeasonNumber &&
-            event.Episode == show.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber) {
+            uint64(season) == show.Seasons[seasonIndex].SeasonNumber &&
+            uint64(episode) == show.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber) {
                 filename = show.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName
                 break outer;
             }
@@ -71,7 +88,7 @@ func getShow(ctx context.Context, event GetShowEvent) (GetShowResponse, error) {
     }
 
     if filename == "" {
-        return GetShowResponse{}, errors.New("Episode does not exist")
+        return common.ErrorResponse(http.StatusBadRequest,"Episode does not exist"), nil
     }
 
     bucketName := common.VideoBucketName
@@ -86,15 +103,24 @@ func getShow(ctx context.Context, event GetShowEvent) (GetShowResponse, error) {
 
     if err != nil {
         log.Printf("Error creating presigned url for getting episode: %v", err)
-        return GetShowResponse{}, errors.New("Error creating presigned url for getting episode")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error creating presigned url for getting episode")
     }
 
     res := GetShowResponse{
         Url: request.URL,
         Method: request.Method,
     }
+    resString, err := json.Marshal(res)
+    if (err != nil) {
+        log.Printf("Error marshaling res: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling res")
+    }
 
-    return res, nil
+    return events.APIGatewayProxyResponse{
+        StatusCode: http.StatusOK,
+        Headers:    map[string]string{"Content-Type": "application/json"},
+        Body: string(resString),
+    }, nil
 }
 
 func main() {

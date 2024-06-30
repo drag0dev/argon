@@ -3,10 +3,13 @@ package main
 import (
 	"common"
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -14,10 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
-
-type GetMovieEvent struct {
-    UUID string `json:"uuid"`
-}
 
 type GetMovieResponse struct {
     Url string               `json:"url"`
@@ -28,13 +27,18 @@ var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
 const expiration = 300 // 5m
 
-func getMovie(ctx context.Context, event GetMovieEvent) (GetMovieResponse, error) {
+func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+    uuid, ok := incomingRequest.QueryStringParameters["uuid"]
+    if (!ok) {
+        return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
+    }
+
     tableName := common.MovieTableName
     input := &dynamodb.GetItemInput{
         TableName: &tableName,
         Key: map[string]types.AttributeValue {
             "id": &types.AttributeValueMemberS {
-                Value: event.UUID,
+                Value: uuid,
             },
         },
     }
@@ -42,18 +46,18 @@ func getMovie(ctx context.Context, event GetMovieEvent) (GetMovieResponse, error
     result, err := dynamodbClient.GetItem(context.TODO(), input)
     if err != nil {
         log.Printf("Error getting movie: %v", err)
-        return GetMovieResponse{}, errors.New("Error getting movie")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error getting movie")
     }
 
     if result.Item == nil {
-        return GetMovieResponse{}, errors.New("Movie does not exist")
+        return common.ErrorResponse(http.StatusBadRequest, "Movie does not exist"), nil
     }
 
     var movie common.Movie
     err = attributevalue.UnmarshalMap(result.Item, &movie)
     if err != nil {
         log.Printf("Error unmarshaling movie :%v", err)
-        return GetMovieResponse{}, errors.New("Error umarshaling movie")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling movie")
     }
 
     bucketName := common.VideoBucketName
@@ -68,15 +72,24 @@ func getMovie(ctx context.Context, event GetMovieEvent) (GetMovieResponse, error
 
     if err != nil {
         log.Printf("Error creating presigned url for getting movie: %v", err)
-        return GetMovieResponse{}, errors.New("Error creating presigned url for getting movie")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error creating presigned url for getting movie")
     }
 
     res := GetMovieResponse{
         Url: request.URL,
         Method: request.Method,
     }
+    resString, err := json.Marshal(res)
+    if (err != nil) {
+        log.Printf("Error marshaling res response: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling res response for getting movie")
+    }
 
-    return res, nil
+    return events.APIGatewayProxyResponse{
+        StatusCode: http.StatusOK,
+        Headers:    map[string]string{"Content-Type": "application/json"},
+        Body: string(resString),
+    }, nil
 }
 
 func main() {
