@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -38,11 +37,10 @@ func uploadMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequ
     event.UUID = movieUUID
 
     timestamp := time.Now().Unix()
-    fileName := fmt.Sprintf("%s-%d.%s", movieUUID, timestamp, event.Video.FileType)
-    // having '/' in the name causes s3 to treat it as a folder
-    fileName = strings.ReplaceAll(fileName, "/", "-")
+    fileName := fmt.Sprintf("%s-%d", movieUUID, timestamp)
 
     event.Video.FileName = fileName
+    fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
 
     // create pre signed url
     request, err := s3PresignClient.PresignPutObject(context.TODO(),

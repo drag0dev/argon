@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
+    "github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -58,6 +59,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
     // Video bucket
     videoBucket := awss3.NewBucket(stack, jsii.String("argon-videos-bucket"), &awss3.BucketProps{
         BucketName: jsii.String("argon-videos-bucket"),
+        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+        AutoDeleteObjects: jsii.Bool(true),
     })
     awscdk.NewCfnOutput(stack, jsii.String("argon videos bucket"), &awscdk.CfnOutputProps{
         Value:       jsii.String("argon-videos-bucket"),
@@ -76,6 +79,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         BillingMode: awsdynamodb.BillingMode_PROVISIONED,
         ReadCapacity: jsii.Number(1),
         WriteCapacity: jsii.Number(1),
+        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
     })
     awscdk.NewCfnOutput(stack, jsii.String("movie table"), &awscdk.CfnOutputProps{
         Value:       movieTable.TableName(),
@@ -91,12 +95,39 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         BillingMode: awsdynamodb.BillingMode_PROVISIONED,
         ReadCapacity: jsii.Number(1),
         WriteCapacity: jsii.Number(1),
+        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
     })
     awscdk.NewCfnOutput(stack, jsii.String("show table"), &awscdk.CfnOutputProps{
         Value:       showTable.TableName(),
         Description: jsii.String("show-table"),
     })
 
+
+    // Transcoding lambda
+    ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
+        Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
+        Description: jsii.String("FFmpeg binary"),
+        CompatibleRuntimes: &[]awslambda.Runtime{
+            awslambda.Runtime_PROVIDED_AL2023(),
+        },
+    })
+    transcoderLambda := awslambda.NewFunction(stack, jsii.String("VideoTranscoding"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+        MemorySize: jsii.Number(3008),
+        Layers: &[]awslambda.ILayerVersion{
+            ffmpegLayer,
+        },
+    })
+    videoBucket.GrantReadWrite(transcoderLambda, jsii.String("*"))
+    videoBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED,
+        awss3notifications.NewLambdaDestination(transcoderLambda),
+        &awss3.NotificationKeyFilter{
+            Suffix: jsii.String("_original"),
+        },
+    )
 
 
     // Movie Lambdas

@@ -66,3 +66,8 @@ type Show struct {
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
+
+const Resolution1 = "1920:1080"
+const Resolution2 = "1280:720"
+const Resolution3 = "800:600"
+const OriginalSuffix = "_original"
