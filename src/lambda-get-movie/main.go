@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -30,6 +31,14 @@ const expiration = 300 // 5m
 func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     uuid, ok := incomingRequest.QueryStringParameters["uuid"]
     if (!ok) {
+        return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
+    }
+    resolution, ok := incomingRequest.QueryStringParameters["resolution"]
+    if (!ok) {
+        return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
+    }
+
+    if (resolution != common.Resolution1 && resolution != common.Resolution2 && resolution != common.Resolution3)  {
         return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
     }
 
@@ -61,10 +70,11 @@ func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest
     }
 
     bucketName := common.VideoBucketName
+    fileName := fmt.Sprintf("%s/%s.mp4", movie.Video.FileName, resolution)
     request, err := s3PresignClient.PresignGetObject(context.TODO(),
         &s3.GetObjectInput{
             Bucket: &bucketName,
-            Key: &movie.Video.FileName,
+            Key: &fileName,
         },
         func (opts *s3.PresignOptions) {
             opts.Expires = time.Duration(expiration * int64(time.Second))
