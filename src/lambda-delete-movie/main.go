@@ -53,7 +53,7 @@ func deleteMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequ
 
     if (!movie.Video.Ready) { return common.EmptyErrorResponse(http.StatusBadRequest), nil }
 
-    // delete each video
+    // delete each resolution
     for _, res := range []string{common.Resolution1, common.Resolution2, common.Resolution3} {
         filename := fmt.Sprintf("%s/%s.mp4", movie.Video.FileName, res)
         _, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
