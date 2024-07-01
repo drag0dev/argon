@@ -32,6 +32,8 @@ const expiration = 3600 // 60m
 func uploadMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     var event common.Movie
     err := json.Unmarshal([]byte(incomingRequest.Body), &event)
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    if (!common.IsMovieValid(&event)) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
 
     movieUUID := uuid.New().String()
     event.UUID = movieUUID
