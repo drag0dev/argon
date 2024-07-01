@@ -36,6 +36,8 @@ func uploadMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequ
     movieUUID := uuid.New().String()
     event.UUID = movieUUID
 
+    event.Video.Ready = false
+
     timestamp := time.Now().Unix()
     fileName := fmt.Sprintf("%s-%d", movieUUID, timestamp)
 

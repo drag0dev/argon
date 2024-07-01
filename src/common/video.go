@@ -13,6 +13,8 @@ type Video struct {
     FileSize           uint64 `dynamodbav:"fileSize" json:"fileSize"`
     CreationTimestamp  int64  `dynamodbav:"creationTimestamp" json:"creationTimestamp"`
     LastChangeTimestamp int64 `dynamodbav:"lastChangeTimestamp" json:"lastChangeTimestamp"`
+    // has video been processed and ready to be watched by the user
+    Ready bool                `dynamodbav:"ready" json:"ready"`
 }
 
 type Episode struct {

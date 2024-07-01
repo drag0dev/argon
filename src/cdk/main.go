@@ -115,8 +115,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
         Handler:    jsii.String("main"),
         Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
-        Timeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-        MemorySize: jsii.Number(3008),
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(2)),
+        MemorySize: jsii.Number(1024),
         Layers: &[]awslambda.ILayerVersion{
             ffmpegLayer,
         },
@@ -128,6 +128,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
             Suffix: jsii.String("_original"),
         },
     )
+    movieTable.GrantReadWriteData(transcoderLambda)
+    showTable.GrantReadWriteData(transcoderLambda)
 
 
     // Movie Lambdas

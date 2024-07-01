@@ -56,6 +56,7 @@ func uploadShow(ctx context.Context, incomingRequest events.APIGatewayProxyReque
                 timestamp)
 
             event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName = fileName
+            event.Seasons[seasonIndex].Episodes[episodeIndex].Video.Ready = false
 
             fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
 
