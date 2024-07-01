@@ -90,6 +90,11 @@ func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest)
             uint64(season) == show.Seasons[seasonIndex].SeasonNumber &&
             uint64(episode) == show.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber) {
                 filename = show.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName
+
+                // check if the video is processed
+                if (!show.Seasons[seasonIndex].Episodes[episodeIndex].Video.Ready) {
+                    return common.EmptyErrorResponse(http.StatusBadRequest), nil
+                }
                 break outer;
             }
         }

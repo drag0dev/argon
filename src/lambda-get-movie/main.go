@@ -69,6 +69,10 @@ func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest
         return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling movie")
     }
 
+    if (!movie.Video.Ready) {
+        return common.EmptyErrorResponse(http.StatusBadRequest), nil
+    }
+
     bucketName := common.VideoBucketName
     fileName := fmt.Sprintf("%s/%s.mp4", movie.Video.FileName, resolution)
     request, err := s3PresignClient.PresignGetObject(context.TODO(),
