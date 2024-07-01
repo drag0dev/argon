@@ -13,6 +13,8 @@ type Video struct {
     FileSize           uint64 `dynamodbav:"fileSize" json:"fileSize"`
     CreationTimestamp  int64  `dynamodbav:"creationTimestamp" json:"creationTimestamp"`
     LastChangeTimestamp int64 `dynamodbav:"lastChangeTimestamp" json:"lastChangeTimestamp"`
+    // has video been processed and ready to be watched by the user
+    Ready bool                `dynamodbav:"ready" json:"ready"`
 }
 
 type Episode struct {
@@ -66,3 +68,8 @@ type Show struct {
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
+
+const Resolution1 = "1920:1080"
+const Resolution2 = "1280:720"
+const Resolution3 = "800:600"
+const OriginalSuffix = "_original"

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -41,6 +42,13 @@ func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest)
     if (!ok) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
     _, ok = incomingRequest.QueryStringParameters["episode"]
     if (!ok) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    resolution, ok := incomingRequest.QueryStringParameters["resolution"]
+    if (!ok) {
+        return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
+    }
+    if (resolution != common.Resolution1 && resolution != common.Resolution2 && resolution != common.Resolution3)  {
+        return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil
+    }
 
     season, err := strconv.Atoi(incomingRequest.QueryStringParameters["season"])
     if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
@@ -82,6 +90,11 @@ func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest)
             uint64(season) == show.Seasons[seasonIndex].SeasonNumber &&
             uint64(episode) == show.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber) {
                 filename = show.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName
+
+                // check if the video is processed
+                if (!show.Seasons[seasonIndex].Episodes[episodeIndex].Video.Ready) {
+                    return common.EmptyErrorResponse(http.StatusBadRequest), nil
+                }
                 break outer;
             }
         }
@@ -92,6 +105,7 @@ func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest)
     }
 
     bucketName := common.VideoBucketName
+    filename = fmt.Sprintf("%s/%s.mp4", filename, resolution)
     request, err := s3PresignClient.PresignGetObject(context.TODO(),
         &s3.GetObjectInput{
             Bucket: &bucketName,
