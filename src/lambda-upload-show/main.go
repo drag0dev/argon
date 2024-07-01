@@ -38,6 +38,8 @@ const expiration = 3600 // 60m
 func uploadShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     var event common.Show
     err := json.Unmarshal([]byte(incomingRequest.Body), &event)
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    if (!common.IsShowValid(&event)) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
 
     showUUID := uuid.New().String()
     event.UUID = showUUID
