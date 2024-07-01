@@ -29,7 +29,7 @@ func IsMovieValid(movie *Movie) bool {
     if (len(movie.Title) == 0) { return false }
     if (len(movie.Description) == 0) { return false }
     for _, genre := range movie.Genres { if (len(genre) == 0) { return false } }
-    for _, actor := range movie.Directors { if (len(actor) == 0) { return false } }
+    for _, actor := range movie.Actors { if (len(actor) == 0) { return false } }
     for _, director := range movie.Directors { if (len(director) == 0) { return false } }
     return IsVideoValid(&movie.Video)
 }
@@ -38,7 +38,7 @@ func IsShowValid(show *Show) bool {
     if (len(show.Title) == 0) { return false }
     if (len(show.Description) == 0) { return false }
     for _, genre := range show.Genres { if (len(genre) == 0) { return false } }
-    for _, actor := range show.Directors { if (len(actor) == 0) { return false } }
+    for _, actor := range show.Actors { if (len(actor) == 0) { return false } }
     for _, director := range show.Directors { if (len(director) == 0) { return false } }
     for _, season := range show.Seasons { if (!IsSeasonValid(&season)) { return false } }
     return true
