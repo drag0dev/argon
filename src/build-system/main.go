@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -80,6 +82,35 @@ func lambdaFolderExist(lambdaName string) {
     }
 }
 
+func downloadFFMPEG() {
+    url := "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+
+    outFile, err := os.Create("./ffmpeg-binary.tar.xz")
+    if (err != nil) {
+        fmt.Printf("Error creating ffmpeg-binary.zip file: %v\n", err)
+        os.Exit(-1)
+    }
+    defer outFile.Close()
+
+    response, err := http.Get(url)
+    if (err != nil) {
+        fmt.Printf("Error downloading ffmpeg binary: %v\n", err)
+        os.Exit(-1)
+    }
+    defer response.Body.Close()
+
+    if (response.StatusCode != http.StatusOK) {
+        fmt.Printf("Server returned: %s", response.Status)
+        os.Exit(-1)
+    }
+
+    _, err = io.Copy(outFile, response.Body)
+    if err != nil {
+        fmt.Printf("Error writing binary zip: %v\n", err)
+        os.Exit(-1)
+    }
+}
+
 func main() {
     if (len(os.Args) < 2) {
         help()
@@ -101,6 +132,9 @@ func main() {
             fmt.Printf("\033[32mDONE\033[0m\n")
         }
     } else if (command == "ffmpeg") {
+        fmt.Print("Downloading FFMPEG, \033[38;5;214mMIGHT TAKE A WHILE\033[0m ")
+        downloadFFMPEG()
+        fmt.Printf("\033[32mDONE\033[0m\n")
     } else {
         lambda := os.Args[1]
         lambdaFolderExist(lambda)
