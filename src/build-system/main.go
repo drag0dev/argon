@@ -41,7 +41,9 @@ func getAllLambdas() []string {
 }
 
 func buildLambda(lambdaName string) {
-    buildCommand := exec.Command("go", "build", "-o", fmt.Sprintf("../%s/bootstrap", lambdaName), "main.go")
+    buildCommand := exec.Command("go", "build", "-o", "bootstrap", "main.go")
+
+    buildCommand.Dir = fmt.Sprintf("../%s/", lambdaName)
 
     buildCommand.Env = os.Environ()
     buildCommand.Env = append(buildCommand.Env, "GOOS=linux")
@@ -55,9 +57,9 @@ func buildLambda(lambdaName string) {
 }
 
 func zipLambda(lambdaName string) {
-    zipPath := fmt.Sprintf("../%s/function.zip", lambdaName)
-    binaryPath := fmt.Sprintf("../%s/bootstrap", lambdaName)
-    zipCommand := exec.Command("zip", zipPath, binaryPath)
+    zipCommand := exec.Command("zip", "-FS", "function.zip", "bootstrap")
+    zipCommand.Dir = fmt.Sprintf("../%s/", lambdaName)
+
     _, err := zipCommand.CombinedOutput()
     if (err != nil) {
         fmt.Printf("Error running zip command: %v\n", err)
