@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -39,13 +40,14 @@ var dynamodbClient *dynamodb.Client
 const expiration = 3600 // 60m
 
 func updateShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-    var event UpdateMovieRequest
+    var event UpdateShowRequest
     err := json.Unmarshal([]byte(incomingRequest.Body), &event)
     if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
-    if (len(event.UUID) == 0 || len(event.FileType) == 0 || event.FileSize == 0) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    if (len(event.UUID) == 0 || len(event.FileType) == 0 || event.FileSize == 0 ||
+            event.Season == 0 || event.Episode == 0) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
 
-    // get the movie
-    tableName := common.MovieTableName
+    // get the show
+    tableName := common.ShowTableName
     getInput := &dynamodb.GetItemInput{
         TableName: &tableName,
         Key: map[string]types.AttributeValue {
@@ -57,82 +59,103 @@ func updateShow(ctx context.Context, incomingRequest events.APIGatewayProxyReque
 
     result, err := dynamodbClient.GetItem(context.TODO(), getInput)
     if err != nil {
-        log.Printf("Error getting movie: %v", err)
-        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error getting movie")
+        log.Printf("Error getting show: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error getting show")
     }
 
     if result.Item == nil {
-        return common.ErrorResponse(http.StatusBadRequest, "Movie does not exist"), nil
+        return common.ErrorResponse(http.StatusBadRequest, "Show does not exist"), nil
     }
 
-    var movie common.Movie
-    err = attributevalue.UnmarshalMap(result.Item, &movie)
+    var show common.Show
+    err = attributevalue.UnmarshalMap(result.Item, &show)
     if err != nil {
-        log.Printf("Error unmarshaling movie :%v", err)
-        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling movie")
+        log.Printf("Error unmarshaling show :%v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling show")
     }
 
-    // cant update a movie that is not ready
-    if (!movie.Video.Ready) { return common.EmptyErrorResponse(http.StatusBadRequest), nil }
+    seasonActualIdx := -1
+    episodeActualIdx := -1
+    for seasonIdx, season := range show.Seasons {
+        if (season.SeasonNumber == event.Season) {
+            seasonActualIdx = seasonIdx
+            for episodeIdx, episode := range season.Episodes {
+                if (episode.EpisodeNumber == event.Episode) {
+                    episodeActualIdx = episodeIdx
+                }
+            }
+        }
+    }
+    // non existant season and episode
+    if (seasonActualIdx == -1 || episodeActualIdx == -1) { return common.EmptyErrorResponse(http.StatusBadRequest), nil }
 
-    // delete the all three resoltions of the old movie
+    // is episode ready
+    if (!show.Seasons[seasonActualIdx].Episodes[episodeActualIdx].Video.Ready) { return common.EmptyErrorResponse(http.StatusBadRequest), nil }
+
+
+    episodeFileName := show.Seasons[seasonActualIdx].Episodes[episodeActualIdx].Video.FileName
+    // delete all three resolutions of the old episode
     for _, res := range []string{common.Resolution1, common.Resolution2, common.Resolution3} {
-        filename := fmt.Sprintf("%s/%s.mp4", movie.Video.FileName, res)
+        filename := fmt.Sprintf("%s/%s.mp4", episodeFileName, res)
         _, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
             Bucket: aws.String(common.VideoBucketName),
             Key: &filename,
         })
 
         if (err != nil) {
-            log.Printf("Error deleting movie %s from s3: %v\n", filename, err)
-            return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New(fmt.Sprintf("Error deleting movie from s3: %v\n", err))
+            log.Printf("Error deleting episode %s from s3: %v\n", filename, err)
+            return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New(fmt.Sprintf("Error deleting episode from s3: %v\n", err))
         }
     }
     // delete the old folder
     _, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
         Bucket: aws.String(common.VideoBucketName),
-        Key: &movie.Video.FileName,
+        Key: &episodeFileName,
     })
 
     if (err != nil) {
-        log.Printf("Error deleting movie folder %s from s3: %v\n", movie.Video.FileName, err)
-        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New(fmt.Sprintf("Error deleting movie from s3: %v\n", err))
+        log.Printf("Error deleting episode folder %s from s3: %v\n", episodeFileName, err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New(fmt.Sprintf("Error deleting episode from s3: %v\n", err))
     }
 
-    // update the movie item in the table
-    timestamp := time.Now().Unix()
-    fileName := fmt.Sprintf("%s-%d", movie.UUID, timestamp)
+    // update the show item in the table
+    video := &show.Seasons[seasonActualIdx].Episodes[episodeActualIdx].Video
 
-    movie.Video.Ready = false
-    movie.Video.FileSize = event.FileSize
-    movie.Video.FileType = event.FileType
-    movie.Video.LastChangeTimestamp = timestamp
-    movie.Video.FileName = fileName
+    parts := strings.Split(video.FileName, "-")
+    // all episodes in a tv show carry timestamp in the name that represents the show creation timestamp
+    oldTimestamp := parts[len(parts)-1]
+    fileName := fmt.Sprintf("%s-%d-%d-%s", show.UUID, event.Season, event.Episode, oldTimestamp)
+
+    video.Ready = false
+    video.FileSize = event.FileSize
+    video.FileType = event.FileType
+    video.LastChangeTimestamp = time.Now().Unix()
+    video.FileName = fileName
 
     fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
 
-    marshaledVideo, err := attributevalue.MarshalMap(movie.Video)
+    marshaledSeasons, err := attributevalue.MarshalList(show.Seasons)
     if err != nil {
-        log.Printf("Error marshaling updated video: %v", err)
-        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling video")
+        log.Printf("Error marshaling seasons show: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling seasons")
     }
     updateInput := &dynamodb.UpdateItemInput{
-        TableName: aws.String(common.MovieTableName),
+        TableName: aws.String(common.ShowTableName),
         Key: map[string]types.AttributeValue{
-            "id": &types.AttributeValueMemberS{Value: movie.UUID},
+            "id": &types.AttributeValueMemberS{Value: show.UUID},
         },
-        UpdateExpression: aws.String("SET video = :val"),
+        UpdateExpression: aws.String("SET seasons = :val"),
         ExpressionAttributeValues: map[string]types.AttributeValue{
-            ":val": &types.AttributeValueMemberM{Value: marshaledVideo},
+            ":val": &types.AttributeValueMemberL{Value: marshaledSeasons},
         },
     }
     _, err = dynamodbClient.UpdateItem(context.TODO(), updateInput)
     if err != nil {
-        log.Printf("Error putting video: %v", err)
-        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error putting video")
+        log.Printf("Error putting seasons: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error putting seasons")
     }
 
-    // create pre signed url
+    // create presigned url
     request, err := s3PresignClient.PresignPutObject(context.TODO(),
     &s3.PutObjectInput{
         Bucket: aws.String(common.VideoBucketName),
@@ -143,11 +166,11 @@ func updateShow(ctx context.Context, incomingRequest events.APIGatewayProxyReque
     })
 
     if err != nil {
-        log.Printf("Error getting presigned url for updating movie for \"%s\": %v", fileName, err)
+        log.Printf("Error getting presigned url for updating episode for \"%s\": %v", fileName, err)
         return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error creating presign url")
     }
 
-    res := UpdateMovieResponse {
+    res := UpdateShowResponse {
         Url: request.URL,
         Method: request.Method,
     }
@@ -172,7 +195,6 @@ func main() {
 
     s3Client = s3.NewFromConfig(sdkConfig)
     s3PresignClient = s3.NewPresignClient(s3Client)
-
     dynamodbClient = dynamodb.NewFromConfig(sdkConfig)
 
     lambda.Start(updateShow)
