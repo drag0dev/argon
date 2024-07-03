@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -39,6 +40,20 @@ func getAllLambdas() []string {
     return lambdas
 }
 
+func buildLambda(lambdaName string) {
+    buildCommand := exec.Command("go", "build", "-o", fmt.Sprintf("../%s/bootstrap", lambdaName), "main.go")
+
+    buildCommand.Env = os.Environ()
+    buildCommand.Env = append(buildCommand.Env, "GOOS=linux")
+    buildCommand.Env = append(buildCommand.Env, "GOARCH=amd64")
+
+    _, err := buildCommand.CombinedOutput()
+    if (err != nil) {
+        fmt.Printf("Error running build command: %v\n", err)
+        os.Exit(-1)
+    }
+}
+
 func main() {
     if (len(os.Args) < 2) {
         help()
@@ -50,6 +65,10 @@ func main() {
         help()
     } else if (command == "build") {
         lambdas := getAllLambdas()
+        for _, lambda := range lambdas {
+            fmt.Printf("Building %s\n", lambda)
+            buildLambda(lambda)
+        }
     } else if (command == "ffmpeg") {
     } else {
         // build a specific lambda
