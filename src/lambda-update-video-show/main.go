@@ -20,15 +20,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-type UpdateMovieRequest struct {
-    UUID       string   `json:"uuid"`
-    FileType   string   `json:"fileType"`
-    FileSize   uint64   `json:"fileSize"`
+type UpdateShowRequest struct {
+    UUID        string    `json:"uuid"`
+    FileType    string    `json:"fileType"`
+    FileSize    uint64    `json:"fileSize"`
+    Season      uint64    `json:"season"`
+    Episode     uint64    `json:"episode"`
 }
 
-type UpdateMovieResponse struct {
-    Url    string    `json:"url"`
-    Method string    `json:"method"`
+type UpdateShowResponse struct {
+    Url    string            `json:"url"`
+    Method string            `json:"method"`
 }
 
 var s3Client *s3.Client
@@ -36,7 +38,7 @@ var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
 const expiration = 3600 // 60m
 
-func updateMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func updateShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     var event UpdateMovieRequest
     err := json.Unmarshal([]byte(incomingRequest.Body), &event)
     if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
@@ -173,5 +175,5 @@ func main() {
 
     dynamodbClient = dynamodb.NewFromConfig(sdkConfig)
 
-    lambda.Start(updateMovie)
+    lambda.Start(updateShow)
 }
