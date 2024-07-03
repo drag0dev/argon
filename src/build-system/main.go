@@ -54,6 +54,17 @@ func buildLambda(lambdaName string) {
     }
 }
 
+func zipLambda(lambdaName string) {
+    zipPath := fmt.Sprintf("../%s/function.zip", lambdaName)
+    binaryPath := fmt.Sprintf("../%s/bootstrap", lambdaName)
+    zipCommand := exec.Command("zip", zipPath, binaryPath)
+    _, err := zipCommand.CombinedOutput()
+    if (err != nil) {
+        fmt.Printf("Error running zip command: %v\n", err)
+        os.Exit(-1)
+    }
+}
+
 func main() {
     if (len(os.Args) < 2) {
         help()
@@ -66,8 +77,13 @@ func main() {
     } else if (command == "build") {
         lambdas := getAllLambdas()
         for _, lambda := range lambdas {
-            fmt.Printf("Building %s\n", lambda)
+            fmt.Printf("Build %s ", lambda)
             buildLambda(lambda)
+            fmt.Printf("\033[32mDONE\033[0m\n")
+
+            fmt.Printf("Zip %s ", lambda)
+            zipLambda(lambda)
+            fmt.Printf("\033[32mDONE\033[0m\n")
         }
     } else if (command == "ffmpeg") {
     } else {
