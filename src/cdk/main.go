@@ -148,12 +148,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         Handler: jsii.String("main"),
         Code:    awslambda.Code_FromAsset(jsii.String("../lambda-delete-movie/function.zip"), &awss3assets.AssetOptions{}),
     })
+    updateMovieVideo := awslambda.NewFunction(stack, jsii.String("UpdateMovieVideo"), &awslambda.FunctionProps{
+        Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+        Handler: jsii.String("main"),
+        Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-video-movie/function.zip"), &awss3assets.AssetOptions{}),
+    })
     videoBucket.GrantRead(getMovieLambda, jsii.String("*"))
     videoBucket.GrantPut(postMovieLambda, jsii.String("*"))
     videoBucket.GrantDelete(deleteMovieLambda, jsii.String("*"))
+    videoBucket.GrantReadWrite(updateMovieVideo, jsii.String("*"))
     movieTable.GrantReadData(getMovieLambda)
     movieTable.GrantWriteData(postMovieLambda)
     movieTable.GrantReadWriteData(deleteMovieLambda)
+    movieTable.GrantReadWriteData(updateMovieVideo)
 
 
     // Tv Show Lambdas
@@ -213,6 +220,11 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         // Authorizer:        authorizer,
     })
     movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, nil), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+    })
+    movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, nil), &awsapigateway.MethodOptions{
         // TODO: enable when frontend is done
         // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
         // Authorizer:        authorizer,
