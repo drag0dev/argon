@@ -20,14 +20,14 @@ func help() {
 func getAllLambdas() []string {
     dir, err := os.Open("../")
     if (err != nil) {
-        fmt.Printf("Cannot open src directory: %v\n", err)
+        fmt.Printf("\nCannot open src directory: %v\n", err)
         os.Exit(-1)
     }
     defer dir.Close()
 
     entries, err := dir.Readdir(0)
     if (err != nil) {
-        fmt.Printf("Error reading src directory contents: %v\n", err)
+        fmt.Printf("\nError reading src directory contents: %v\n", err)
         os.Exit(-1)
     }
 
@@ -53,7 +53,7 @@ func buildLambda(lambdaName string) {
 
     commandOutput, err := buildCommand.CombinedOutput()
     if (err != nil) {
-        fmt.Printf("Error running build command: %v\n", err)
+        fmt.Printf("\nError running build command: %v\n", err)
         fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
@@ -65,7 +65,7 @@ func zipLambda(lambdaName string) {
 
     commandOutput, err := zipCommand.CombinedOutput()
     if (err != nil) {
-        fmt.Printf("Error running zip command: %v\n", err)
+        fmt.Printf("\nError running zip command: %v\n", err)
         fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
@@ -74,12 +74,12 @@ func zipLambda(lambdaName string) {
 func lambdaFolderExist(lambdaName string) {
     _, err := os.Stat(fmt.Sprintf("../%s", lambdaName));
     if os.IsNotExist(err) {
-        fmt.Printf("Lambda %s does not exist.\n", lambdaName)
+        fmt.Printf("\nLambda %s does not exist.\n", lambdaName)
         os.Exit(-1)
     }
 
     if (err != nil) {
-        fmt.Printf("Error checking if lambda %s exists: %v\n", lambdaName, err)
+        fmt.Printf("\nError checking if lambda %s exists: %v\n", lambdaName, err)
         os.Exit(-1)
     }
 }
@@ -89,26 +89,26 @@ func downloadFFMPEG() {
 
     outFile, err := os.Create("./ffmpeg-binary.tar.xz")
     if (err != nil) {
-        fmt.Printf("Error creating ffmpeg-binary.zip file: %v\n", err)
+        fmt.Printf("\nError creating ffmpeg-binary.zip file: %v\n", err)
         os.Exit(-1)
     }
     defer outFile.Close()
 
     response, err := http.Get(url)
     if (err != nil) {
-        fmt.Printf("Error downloading ffmpeg binary: %v\n", err)
+        fmt.Printf("\nError downloading ffmpeg binary: %v\n", err)
         os.Exit(-1)
     }
     defer response.Body.Close()
 
     if (response.StatusCode != http.StatusOK) {
-        fmt.Printf("Server returned: %s", response.Status)
+        fmt.Printf("\nServer returned: %s", response.Status)
         os.Exit(-1)
     }
 
     _, err = io.Copy(outFile, response.Body)
     if err != nil {
-        fmt.Printf("Error writing binary zip: %v\n", err)
+        fmt.Printf("\nError writing binary zip: %v\n", err)
         os.Exit(-1)
     }
 }
@@ -117,7 +117,7 @@ func prepFFMPEG() {
     untarCommand := exec.Command("tar", "-xf", "ffmpeg-binary.tar.xz")
     commandOutput, err := untarCommand.CombinedOutput()
     if (err != nil) {
-        fmt.Printf("Error untarring ffmpeg: %v\n", err)
+        fmt.Printf("\nError untarring ffmpeg: %v\n", err)
         fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
@@ -125,14 +125,14 @@ func prepFFMPEG() {
     // find the output folder
     dir, err := os.Open(".")
     if (err != nil) {
-        fmt.Printf("Cannot open current directory: %v\n", err)
+        fmt.Printf("\nCannot open current directory: %v\n", err)
         os.Exit(-1)
     }
     defer dir.Close()
 
     entries, err := dir.Readdir(0)
     if (err != nil) {
-        fmt.Printf("Error reading src directory contents: %v\n", err)
+        fmt.Printf("\nError reading src directory contents: %v\n", err)
         os.Exit(-1)
     }
 
@@ -145,21 +145,21 @@ func prepFFMPEG() {
     }
 
     if (untarringOutput == "") {
-        fmt.Println("Cant find untarring output folder")
+        fmt.Println("\nCant find untarring output folder")
         os.Exit(-1)
     }
 
     // create layer structure
     err = os.MkdirAll(fmt.Sprintf("./%s/temp/bin", untarringOutput), 0755)
     if (err != nil) {
-        fmt.Printf("Error creating dir structure for the zip: %v\n", err)
+        fmt.Printf("\nError creating dir structure for the zip: %v\n", err)
         os.Exit(-1)
     }
 
     // move the binary into the proper folder
     err = os.Rename(fmt.Sprintf("./%s/ffmpeg", untarringOutput), fmt.Sprintf("./%s/temp/bin/ffmpeg", untarringOutput))
     if (err != nil) {
-        fmt.Printf("Error moving ffmpeg binary into the structure: %v\n", err)
+        fmt.Printf("\nError moving ffmpeg binary into the structure: %v\n", err)
         os.Exit(-1)
     }
 
@@ -169,7 +169,7 @@ func prepFFMPEG() {
 
     commandOutput, err = zipCommand.CombinedOutput()
     if (err != nil) {
-        fmt.Printf("Error zipping ffmpeg binary: %v\n", err)
+        fmt.Printf("\nError zipping ffmpeg binary: %v\n", err)
         fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
@@ -177,7 +177,7 @@ func prepFFMPEG() {
     // move the zip into the lambda
     err = os.Rename(fmt.Sprintf("./%s/ffmpeg.zip", untarringOutput), "../lambda-transcoder/ffmpeg.zip")
     if (err != nil) {
-        fmt.Printf("Error moving ffmpeg.zip into the lambda: %v\n", err)
+        fmt.Printf("\nError moving ffmpeg.zip into the lambda: %v\n", err)
         os.Exit(-1)
     }
 }
