@@ -51,9 +51,10 @@ func buildLambda(lambdaName string) {
     buildCommand.Env = append(buildCommand.Env, "GOOS=linux")
     buildCommand.Env = append(buildCommand.Env, "GOARCH=amd64")
 
-    _, err := buildCommand.CombinedOutput()
+    commandOutput, err := buildCommand.CombinedOutput()
     if (err != nil) {
         fmt.Printf("Error running build command: %v\n", err)
+        fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
 }
@@ -62,9 +63,10 @@ func zipLambda(lambdaName string) {
     zipCommand := exec.Command("zip", "-FS", "function.zip", "bootstrap")
     zipCommand.Dir = fmt.Sprintf("../%s/", lambdaName)
 
-    _, err := zipCommand.CombinedOutput()
+    commandOutput, err := zipCommand.CombinedOutput()
     if (err != nil) {
         fmt.Printf("Error running zip command: %v\n", err)
+        fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
 }
@@ -113,9 +115,10 @@ func downloadFFMPEG() {
 
 func prepFFMPEG() {
     untarCommand := exec.Command("tar", "-xf", "ffmpeg-binary.tar.xz")
-    _, err := untarCommand.CombinedOutput()
+    commandOutput, err := untarCommand.CombinedOutput()
     if (err != nil) {
         fmt.Printf("Error untarring ffmpeg: %v\n", err)
+        fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
 
@@ -164,9 +167,10 @@ func prepFFMPEG() {
     zipCommand := exec.Command("zip", "-r", "-X", "../ffmpeg.zip", ".")
     zipCommand.Dir = fmt.Sprintf("./%s/temp", untarringOutput)
 
-    _, err = zipCommand.CombinedOutput()
+    commandOutput, err = zipCommand.CombinedOutput()
     if (err != nil) {
         fmt.Printf("Error zipping ffmpeg binary: %v\n", err)
+        fmt.Printf("Command output: %s\n", string(commandOutput))
         os.Exit(-1)
     }
 
