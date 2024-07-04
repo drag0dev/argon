@@ -1,68 +1,86 @@
 package common
 
 import (
-    _ "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-    _ "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	_ "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	_ "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Video struct {
-    // path on S3
-    FileName           string `dynamodbav:"fileName" json:"fileName"`
-    FileType           string `dynamodbav:"fileType" json:"fileType"`
-    // size in bytes
-    FileSize           uint64 `dynamodbav:"fileSize" json:"fileSize"`
-    CreationTimestamp  int64  `dynamodbav:"creationTimestamp" json:"creationTimestamp"`
-    LastChangeTimestamp int64 `dynamodbav:"lastChangeTimestamp" json:"lastChangeTimestamp"`
-    // has video been processed and ready to be watched by the user
-    Ready bool                `dynamodbav:"ready" json:"ready"`
+	// path on S3
+	FileName string `dynamodbav:"fileName" json:"fileName"`
+	FileType string `dynamodbav:"fileType" json:"fileType"`
+	// size in bytes
+	FileSize            uint64 `dynamodbav:"fileSize" json:"fileSize"`
+	CreationTimestamp   int64  `dynamodbav:"creationTimestamp" json:"creationTimestamp"`
+	LastChangeTimestamp int64  `dynamodbav:"lastChangeTimestamp" json:"lastChangeTimestamp"`
+	// has video been processed and ready to be watched by the user
+	Ready bool `dynamodbav:"ready" json:"ready"`
 }
 
 type Episode struct {
-    EpisodeNumber uint64  `dynamodbav:"episodeNumber" json:"episodeNumber"`
-    Title         string  `dynamodbav:"title" json:"title"`
-    Description   string  `dynamodbav:"description" json:"description"`
-    // String Set type
-    Actors        []string `dynamodbav:"actors" json:"actors"`
-    // String Set type
-    Directors     []string `dynamodbav:"directors" json:"directors"`
-    Video         Video    `dynamodbav:"video" json:"video"`
+	EpisodeNumber uint64 `dynamodbav:"episodeNumber" json:"episodeNumber"`
+	Title         string `dynamodbav:"title" json:"title"`
+	Description   string `dynamodbav:"description" json:"description"`
+	// String Set type
+	Actors []string `dynamodbav:"actors" json:"actors"`
+	// String Set type
+	Directors []string `dynamodbav:"directors" json:"directors"`
+	Video     Video    `dynamodbav:"video" json:"video"`
 }
 
 type Season struct {
-    SeasonNumber uint64    `dynamodbav:"seasonNumber" json:"seasonNumber"`
-    // List Type
-    Episodes     []Episode `dynamodbav:"episodes" json:"episodes"`
+	SeasonNumber uint64 `dynamodbav:"seasonNumber" json:"seasonNumber"`
+	// List Type
+	Episodes []Episode `dynamodbav:"episodes" json:"episodes"`
 }
 
-//NOTE: UUID is primary key, generated using google/uuid
+// NOTE: UUID is primary key, generated using google/uuid
 type Movie struct {
-    // google/uuid
-    UUID         string    `dynamodbav:"id" json:"id"`
-    Title        string    `dynamodbav:"title" json:"title"`
-    Description  string    `dynamodbav:"description" json:"description"`
-    // String Set type
-    Genres       []string  `dynamodbav:"genres" json:"genres"`
-    // String Set type
-    Actors       []string  `dynamodbav:"actors" json:"actors"`
-    // String Set type
-    Directors    []string  `dynamodbav:"directors" json:"directors"`
-    Video        Video     `dynamodbav:"video" json:"video"`
+	// google/uuid
+	UUID        string `dynamodbav:"id" json:"id"`
+	Title       string `dynamodbav:"title" json:"title"`
+	Description string `dynamodbav:"description" json:"description"`
+	// String Set type
+	Genres []string `dynamodbav:"genres" json:"genres"`
+	// String Set type
+	Actors []string `dynamodbav:"actors" json:"actors"`
+	// String Set type
+	Directors []string `dynamodbav:"directors" json:"directors"`
+	Video     Video    `dynamodbav:"video" json:"video"`
 }
 
-//NOTE: UUID is primary key, generated using google/uuid
+// NOTE: UUID is primary key, generated using google/uuid
 type Show struct {
-    // google/uuid
-    UUID         string    `dynamodbav:"id" json:"id"`
-    Title        string    `dynamodbav:"title" json:"title"`
-    Description  string    `dynamodbav:"description" json:"description"`
-    // String Set type
-    Genres       []string  `dynamodbav:"genres" json:"genres"`
-    // String Set type
-    Actors       []string  `dynamodbav:"actors" json:"actors"`
-    // String Set type
-    Directors    []string  `dynamodbav:"directors" json:"directors"`
-    // List Type
-    Seasons      []Season  `dynamodbav:"seasons" json:"seasons"`
+	// google/uuid
+	UUID        string `dynamodbav:"id" json:"id"`
+	Title       string `dynamodbav:"title" json:"title"`
+	Description string `dynamodbav:"description" json:"description"`
+	// String Set type
+	Genres []string `dynamodbav:"genres" json:"genres"`
+	// String Set type
+	Actors []string `dynamodbav:"actors" json:"actors"`
+	// String Set type
+	Directors []string `dynamodbav:"directors" json:"directors"`
+	// List Type
+	Seasons []Season `dynamodbav:"seasons" json:"seasons"`
+}
+
+type SubscriptionType uint8
+
+const (
+	Actor SubscriptionType = iota
+	Director
+	Genre
+)
+
+// NOTE: UUID is primary key, generated using google/uuid
+type Subscription struct {
+	// google/uuid
+	UUID     string           `dynamodbav:"id" json:"id"`
+	UserUUID string           `dynamodbav:"userId" json:"userId"`
+	Type     SubscriptionType `dynamodbav:"type" json:"type"`
+	// The thing the user is subscribed to
+	Target string `dynamodbav:"target" json:"target"`
 }
 
 const VideoBucketName = "argon-videos-bucket"
