@@ -3,6 +3,7 @@ package main
 import (
 	"common"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,11 +17,12 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
 
 
@@ -28,6 +30,8 @@ var s3Client *s3.Client
 var uploader *manager.Uploader
 var downloader *manager.Downloader
 var dynamodbClient *dynamodb.Client
+var snsClient *sns.Client
+var publishingTopicARN string
 
 func handler(ctx context.Context, s3Event events.S3Event) error {
     for _, record := range s3Event.Records {
@@ -94,6 +98,31 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
                 log.Printf("Error marking show video ready: %v\n", err)
                 return errors.New(fmt.Sprintf("Error marking show video ready: %v\n", err))
             }
+        }
+
+        // emit publish notification
+        notification := common.PublishNotification{}
+        if (len(nameParts) == 6) {
+            notification.MovieUUID = uuid
+        } else {
+            notification.ShowUUID = uuid
+        }
+
+        marshaledNotification, err := json.Marshal(notification)
+        if (err != nil) {
+            log.Printf("Error marshaling notification: %v\n", err)
+            return errors.New(fmt.Sprintf("Error marshaling notification: %v\n", err))
+        }
+
+        log.Printf("Emitting to topic: %s\n", publishingTopicARN)
+        _, err = snsClient.Publish(context.TODO(), &sns.PublishInput{
+            Message: aws.String(string(marshaledNotification)),
+            TopicArn: aws.String(publishingTopicARN),
+        })
+
+        if (err != nil) {
+            log.Printf("Error emitting notification: %v\n", err)
+            return errors.New(fmt.Sprintf("Error emitting notification: %v\n", err))
         }
     }
 
@@ -264,6 +293,9 @@ func main() {
     uploader = manager.NewUploader(s3Client)
     downloader = manager.NewDownloader(s3Client)
     dynamodbClient = dynamodb.NewFromConfig(cfg)
+    snsClient = sns.NewFromConfig(cfg)
+
+    publishingTopicARN = os.Getenv("PUBLISHING_TOPIC_ARN")
 
     lambda.Start(handler)
 }
