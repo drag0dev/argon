@@ -1,15 +1,8 @@
 import React from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import HomePage from './pages/HomePage';
 
-const Home = () => {
-  return (
-    <div className="content">
-      <h1>Rsbuild with React</h1>
-      <p>Start building amazing things with Rsbuild.</p>
-    </div>
-  );
-};
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
 const About = () => {
   return (
@@ -28,7 +21,7 @@ const App = () => {
           <Link to="/">Home</Link> | <Link to="/about">About</Link>
         </nav>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<About />} />
         </Routes>
       </div>
