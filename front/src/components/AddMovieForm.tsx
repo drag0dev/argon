@@ -34,6 +34,12 @@ const AddMovieForm = () => {
     e.preventDefault();
 
     // TODO: actually send the movie to the server
+    // type Video struct {
+    //     FileType           string `dynamodbav:"fileType" json:"fileType"`
+    //     FileSize           uint64 `dynamodbav:"fileSize" json:"fileSize"`
+    //     CreationTimestamp  int64  `dynamodbav:"creationTimestamp" json:"creationTimestamp"`
+    //     LastChangeTimestamp int64 `dynamodbav:"lastChangeTimestamp" json:"lastChangeTimestamp"`
+    // }
     console.log('Submitting movie:', movie);
   };
 
