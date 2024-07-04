@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import VideoUpload from './VideoUpload';
 
 const AddMovieForm = () => {
   const [movie, setMovie] = useState({
@@ -45,8 +46,10 @@ const AddMovieForm = () => {
 
   return (
     <div className="container">
-      <h1 className="title is-2">Add New Movie</h1>
       <form onSubmit={handleSubmit}>
+
+        <h2 className="title is-4">Movie Information</h2>
+
         <div className="field">
           <label className="label" htmlFor="title">
             Title
@@ -128,37 +131,11 @@ const AddMovieForm = () => {
           </div>
         </div>
 
-        <div className="field">
-          <label className="label" htmlFor="videoUrl">
-            Video URL
-          </label>
-          <div className="control">
-            <input
-              className="input"
-              type="url"
-              id="videoUrl"
-              name="url"
-              value={movie.video.url}
-              onChange={handleVideoInputChange}
-            />
-          </div>
-        </div>
+        <hr/>
 
-        <div className="field">
-          <label className="label" htmlFor="videoFormat">
-            Video Format
-          </label>
-          <div className="control">
-            <input
-              className="input"
-              type="text"
-              id="videoFormat"
-              name="format"
-              value={movie.video.format}
-              onChange={handleVideoInputChange}
-            />
-          </div>
-        </div>
+        <h2 className="title is-4">Video Information</h2>
+
+        <VideoUpload />
 
         <div className="field">
           <div className="control">
