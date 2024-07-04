@@ -22,29 +22,39 @@ const NavBar = () => {
 
       <div id="navbarBasicExample" className="navbar-menu">
         <div className="navbar-start">
-          <Link to="/home" className="navbar-item">
+          <Link to="/" className="navbar-item">
             Home
           </Link>
           <Link to="/docs" className="navbar-item">
             Documentation
           </Link>
+          <Link to="/about" className="navbar-item">
+            About
+          </Link>
           <div className="navbar-item has-dropdown is-hoverable">
             <Link to="/more" className="navbar-link">
-              More
+              Admin
             </Link>
             <div className="navbar-dropdown">
-              <Link to="/about" className="navbar-item">
-                About
+              <Link to="/movie/add" className="navbar-item">
+                Add movie
               </Link>
-              <Link to="/joes" className="navbar-item">
-                Joes
-              </Link>
-              <Link to="/contact" className="navbar-item">
-                Contact
+              <Link to="/series/add" className="navbar-item">
+                Add series
               </Link>
               <hr className="navbar-divider" />
-              <Link to="report-issue" className="navbar-item">
-                Report an issue
+              <Link to="/movie/edit" className="navbar-item">
+                Edit movie
+              </Link>
+              <Link to="/series/edit" className="navbar-item">
+                Edit show
+              </Link>
+              <hr className="navbar-divider" />
+              <Link to="/movie/delete" className="navbar-item">
+                Delete movie
+              </Link>
+              <Link to="/series/delete" className="navbar-item">
+                Delete series/season/episode
               </Link>
             </div>
           </div>
