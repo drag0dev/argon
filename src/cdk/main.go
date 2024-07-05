@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"os"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
@@ -115,6 +117,11 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Description: jsii.String("subscription-table"),
 	})
 
+	// subscription queue
+	subscriptionQueue := awssqs.NewQueue(stack, jsii.String("SubscriptionQueue"), &awssqs.QueueProps{
+		QueueName: jsii.String("subscription-queue"),
+	})
+
 	// Transcoding lambda
 	ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
 		Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
@@ -198,6 +205,13 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			&awss3assets.AssetOptions{},
 		),
 	})
+	subscribeLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
+		subscriptionQueue,
+		&awslambdaeventsources.SqsEventSourceProps{
+			BatchSize: jsii.Number(1),
+		},
+	))
+	subscriptionQueue.GrantConsumeMessages(subscribeLambda)
 	subscriptionTable.GrantReadData(subscribeLambda)
 	subscriptionTable.GrantWriteData(subscribeLambda)
 	subscriptionTable.GrantReadWriteData(subscribeLambda)
