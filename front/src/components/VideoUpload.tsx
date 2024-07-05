@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload } from '@fortawesome/free-solid-svg-icons';
 
-const VideoUpload = ({ onFileUpload }) => {
+const VideoUpload = ({ onFileUpload, editing }) => {
   const [file, setFile] = useState(null);
   const [metadata, setMetadata] = useState({});
 
@@ -48,6 +48,10 @@ const VideoUpload = ({ onFileUpload }) => {
         />
 
         <div className="column">
+          {!file && editing && (
+            <h2 className="title is-4">Leave empty to keep the current video</h2>
+          )}
+
           {file && (
             <div>
               <h2 className="title is-4">File Metadata</h2>
