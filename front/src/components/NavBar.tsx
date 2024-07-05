@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 const NavBar = () => {
   return (
     <nav className="navbar" aria-label="main navigation">
-      <div className="navbar-brand">Joe</div>
-
       <a
         href="/settings"
         role="button"
