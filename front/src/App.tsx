@@ -6,6 +6,7 @@ import NavBar from './components/NavBar';
 import AddMoviePage from './pages/AddMoviePage';
 import AddTVShowPage from './pages/AddTVShowPage';
 import EditOrDeleteMoviePage from './pages/EditOrDeleteMoviePage';
+import EditOrDeleteTVShowPage from './pages/EditOrDeleteTVShowPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -21,6 +22,8 @@ const App = () => {
           <Route path="/tvshow/add" element={<AddTVShowPage />} />
           <Route path="/movie/delete" element={<EditOrDeleteMoviePage />} />
           <Route path="/movie/edit" element={<EditOrDeleteMoviePage />} />
+          <Route path="/tvshow/delete" element={<EditOrDeleteTVShowPage />} />
+          <Route path="/tvshow/edit" element={<EditOrDeleteTVShowPage />} />
         </Routes>
       </div>
     </Router>
