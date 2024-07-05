@@ -2,23 +2,22 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload } from '@fortawesome/free-solid-svg-icons';
 
-const VideoUpload = () => {
+const VideoUpload = ({ onFileUpload }) => {
   const [file, setFile] = useState(null);
   const [metadata, setMetadata] = useState({});
 
   const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0]; // Assuming only one file is selected
+    const selectedFile = event.target.files[0];
     if (selectedFile) {
-      setFile(selectedFile); // Update the state with the selected file
-
-      // Extract metadata from the file
+      setFile(selectedFile);
       const fileMetadata = {
         name: selectedFile.name,
         type: selectedFile.type,
         size: selectedFile.size,
         lastModified: new Date(selectedFile.lastModified),
       };
-      setMetadata(fileMetadata); // Update the metadata state
+      setMetadata(fileMetadata);
+      onFileUpload(selectedFile, fileMetadata); // Call the parent's callback
     }
   };
 
