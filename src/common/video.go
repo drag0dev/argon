@@ -86,6 +86,7 @@ type Subscription struct {
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
+const SubscriptionTableName = "subscription"
 
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"
