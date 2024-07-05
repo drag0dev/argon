@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"os"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
@@ -9,13 +8,15 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscognito"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"github.com/aws/constructs-go/constructs/v10"
-"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
+     "github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/jsii-runtime-go"
 )
 
@@ -58,6 +59,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 
 
 
+
     // publishing topic
     publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
         TopicName: jsii.String("publishing-topic"),
@@ -68,7 +70,6 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         QueueName: jsii.String("notification-queue"),
     })
     publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
-
 
 
 	// Create a Cognito User Pool
@@ -188,6 +189,35 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		QueueName: jsii.String("subscription-queue"),
 	})
 
+
+
+    // SES
+    emailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonEmailIdentity"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String("your-email@example.com")),
+    })
+    configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
+        ConfigurationSetName: jsii.String("argon-email-config-set"),
+    })
+
+
+    // create notifications lambda
+    createNotificationLambda := awslambda.NewFunction(stack, jsii.String("CreateNotificationLambda"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-create-notification/function.zip"), &awss3assets.AssetOptions{}),
+        Environment: &map[string]*string{
+            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+            "SES_CONFIG_SET": configSet.ConfigurationSetName(),
+            "SES_EMAIL_IDENTITY": emailIdentity.EmailIdentityName(),
+        },
+    })
+    createNotificationLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(notificationQueue, &awslambdaeventsources.SqsEventSourceProps{
+        BatchSize: jsii.Number(1),
+    }))
+    notificationQueue.GrantConsumeMessages(createNotificationLambda)
+    adminGetUserPermission := "cognito-idp:AdmingGetUser"
+    userPool.Grant(createNotificationLambda, &adminGetUserPermission)
+    emailIdentity.GrantSendEmail(createNotificationLambda)
 
     // Transcoding lambda
     ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
