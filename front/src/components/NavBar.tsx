@@ -3,6 +3,29 @@ import { Link } from 'react-router-dom';
 const NavBar = () => {
   return (
     <nav className="navbar" aria-label="main navigation">
+      <div className="navbar-brand">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="64"
+          height="64"
+          viewBox="0 0 100 100"
+        >
+          <title>Argon</title>
+          <g fill="none" stroke="url(#gradient)" strokeWidth="2">
+            <circle cx="50" cy="50" r="30" />
+            <circle cx="50" cy="50" r="35" />
+            <circle cx="50" cy="50" r="40" />
+          </g>
+          <polygon fill="url(#gradient)" points="50,30 65,70 35,70" />
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{stopColor: '#00557F', stopOpacity: '1'}} />
+              <stop offset="100%" style={{stopColor: '#00B2A9', stopOpacity: '1'}} />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
       <a
         href="/settings"
         role="button"
