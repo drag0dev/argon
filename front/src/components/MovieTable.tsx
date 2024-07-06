@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../../config.ts';
 import EditMovieForm from './EditMovieForm';
 
+const API_URL = process.env.API_URL;
+
 const MovieTable = () => {
   const [movies, setMovies] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
