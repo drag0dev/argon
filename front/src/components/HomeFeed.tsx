@@ -127,7 +127,7 @@ const HomeFeed = () => {
               </div>
               <footer className="card-footer">
                 <Link
-                  to={`/${rec.type.toLowerCase().replace(/\s/g, '')}/${rec.id}/watch`}
+                  to={`/${rec.type.toLowerCase().replace(/\s/g, '')}/${rec.id}/details`}
                   className="card-footer-item"
                 >
                   Watch Now
@@ -155,7 +155,7 @@ const HomeFeed = () => {
                   </div>
                   <footer className="card-footer">
                     <Link
-                      to={`/${other.type.toLowerCase().replace(/\s/g, '')}/${other.id}/watch`}
+                      to={`/${other.type.toLowerCase().replace(/\s/g, '')}/${other.id}/details`}
                       className="card-footer-item"
                     >
                       Watch Now
