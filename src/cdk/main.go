@@ -196,7 +196,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	showTable.GrantWriteData(postShowLambda)
 	showTable.GrantReadWriteData(deleteShowLambda)
 
-	// Subscription Lambda
+	// Subscription Lambdas
+	queueSubscriptionLambda := awslambda.NewFunction(
+		stack,
+		jsii.String("QueueSubscription"),
+		&awslambda.FunctionProps{
+			Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+			Handler: jsii.String("main"),
+			Code: awslambda.Code_FromAsset(
+				jsii.String("../lambda-queue-subscription/function.zip"),
+				&awss3assets.AssetOptions{},
+			),
+		},
+	)
 	subscribeLambda := awslambda.NewFunction(stack, jsii.String("Subscribe"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("main"),
@@ -205,6 +217,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			&awss3assets.AssetOptions{},
 		),
 	})
+	subscriptionQueue.GrantSendMessages(queueSubscriptionLambda)
 	subscribeLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
 		subscriptionQueue,
 		&awslambdaeventsources.SqsEventSourceProps{
@@ -212,9 +225,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		},
 	))
 	subscriptionQueue.GrantConsumeMessages(subscribeLambda)
-	subscriptionTable.GrantReadData(subscribeLambda)
 	subscriptionTable.GrantWriteData(subscribeLambda)
-	subscriptionTable.GrantReadWriteData(subscribeLambda)
 
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{

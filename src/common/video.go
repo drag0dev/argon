@@ -88,6 +88,8 @@ const MovieTableName = "movie"
 const ShowTableName = "show"
 const SubscriptionTableName = "subscription"
 
+const SubscriptionQueueName = "subscription-queue"
+
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"
 const Resolution3 = "800:600"
