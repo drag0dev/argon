@@ -7,6 +7,7 @@ import AddMoviePage from './pages/AddMoviePage';
 import AddTVShowPage from './pages/AddTVShowPage';
 import EditOrDeleteMoviePage from './pages/EditOrDeleteMoviePage';
 import EditOrDeleteTVShowPage from './pages/EditOrDeleteTVShowPage';
+import WatchPage from './pages/WatchPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -24,6 +25,7 @@ const App = () => {
           <Route path="/movie/edit" element={<EditOrDeleteMoviePage />} />
           <Route path="/tvshow/delete" element={<EditOrDeleteTVShowPage />} />
           <Route path="/tvshow/edit" element={<EditOrDeleteTVShowPage />} />
+          <Route path="/movie/:id/watch" element={<WatchPage />} />
         </Routes>
       </div>
     </Router>
