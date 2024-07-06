@@ -4,31 +4,44 @@ import { useParams } from 'react-router-dom';
 
 const Watch = () => {
   const [videoInfo, setVideoInfo] = useState(null);
-  const { id } = useParams();
+  const { id, seasonId, episodeId } = useParams();
 
   useEffect(() => {
-    // Simulated fetch to get video details based on the ID
-    fetchVideoDetails(id);
-  }, [id]);
+    fetchVideoDetails(id, seasonId, episodeId);
+  }, [id, seasonId, episodeId]);
 
-  const fetchVideoDetails = async (id) => {
-    const details = {
-      id: id,
-      title: 'Inception',
-      description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
-      type: 'Movie',
-      videoUrl: 'https://www.youtube.com/watch?v=YoHD9XEInc0',
-      genres: ['Action', 'Adventure', 'Sci-Fi'],
-      actors: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Ellen Page'],
-      directors: ['Christopher Nolan'],
-    };
-    // Simulating a fetch call
+  const fetchVideoDetails = async (id, seasonNum, episodeNum) => {
+    let details = {};
+    if (seasonId && episodeId) {
+      // Dummy data for a TV show episode
+      details = {
+        id: id,
+        title: 'Example Show',
+        description: 'Description of a specific episode of a TV show.',
+        type: 'Episode',
+        videoUrl: 'https://www.example.com/episode.mp4',
+        genres: ['Drama'],
+        actors: ['Actor A', 'Actor B'],
+        directors: ['Director X'],
+      };
+    } else {
+      // Data for a movie
+      details = {
+        id: id,
+        title: 'Inception',
+        description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
+        type: 'Movie',
+        videoUrl: 'https://www.youtube.com/watch?v=YoHD9XEInc0',
+        genres: ['Action', 'Adventure', 'Sci-Fi'],
+        actors: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Ellen Page'],
+        directors: ['Christopher Nolan'],
+      };
+    }
     setVideoInfo(details);
   };
 
   const handleSubscribe = (itemType, itemName) => {
     console.log(`Subscribed to ${itemType}: ${itemName}`);
-    // Implementation for subscription can go here
   };
 
   if (!videoInfo) {
@@ -38,6 +51,9 @@ const Watch = () => {
   return (
     <div className="container mt-5">
       <h1 className="title">{videoInfo.title}</h1>
+      {seasonId && episodeId && (
+        <h3 className="subtitle">Season {seasonId}, Episode {episodeId}</h3>
+      )}
       <ReactPlayer url={videoInfo.videoUrl} controls={true} className="mb-4" />
       <div className="content">
         <p><strong>Type:</strong> {videoInfo.type}</p>
