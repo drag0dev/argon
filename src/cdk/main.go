@@ -17,21 +17,38 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-// methos in format 'METHOD,METHOD,...'
-func generateLambdaIntegrationOptions(methods string) *awsapigateway.LambdaIntegrationOptions {
-	return &awsapigateway.LambdaIntegrationOptions{
-		Proxy: jsii.Bool(false),
-		IntegrationResponses: &[]*awsapigateway.IntegrationResponse{
-			{
-				StatusCode: jsii.String("200"),
-				ResponseParameters: &map[string]*string{
-					"method.response.header.Access-Control-Allow-Origin":  jsii.String("'*'"),
-					"method.response.header.Access-Control-Allow-Headers": jsii.String("'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"),
-					"method.response.header.Access-Control-Allow-Methods": jsii.String(methods),
-				},
-			},
-		},
-	}
+func generateLambdaIntegrationOptions() *awsapigateway.LambdaIntegrationOptions {
+    return &awsapigateway.LambdaIntegrationOptions{
+        Proxy: jsii.Bool(true),
+    }
+}
+func generateMethodResponses() *[]*awsapigateway.MethodResponse {
+    return &[]*awsapigateway.MethodResponse {
+        {
+            StatusCode: jsii.String("200"),
+            ResponseParameters: &map[string]*bool{
+                "method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
+            },
+        },
+        {
+            StatusCode: jsii.String("400"),
+            ResponseParameters: &map[string]*bool{
+                "method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
+            },
+        },
+        {
+            StatusCode: jsii.String("500"),
+            ResponseParameters: &map[string]*bool{
+                "method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
+                "method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
+            },
+        },
+    }
 }
 
 func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackProps) awscdk.Stack {
@@ -303,58 +320,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			"X-Amz-Security-Token",
 		),
 	})
-	movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions("'GET,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions("'POST,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions("'DELETE,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, generateLambdaIntegrationOptions("'PUT,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
+    movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
 
 	// Api GateWay tv show resource
 	tvShowApiResource := api.Root().AddResource(jsii.String("tvShow"), nil)
@@ -369,58 +358,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			"X-Amz-Security-Token",
 		),
 	})
-	tvShowApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getShowLambda, generateLambdaIntegrationOptions("'GET,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	tvShowApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postShowLambda, generateLambdaIntegrationOptions("'POST,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	tvShowApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteShowLambda, generateLambdaIntegrationOptions("'DELETE,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
-	tvShowApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateShowVideo, generateLambdaIntegrationOptions("'PUT,OPTIONS'")), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
-		MethodResponses: &[]*awsapigateway.MethodResponse{{
-			StatusCode: jsii.String("200"),
-			ResponseParameters: &map[string]*bool{
-				"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-				"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-			}},
-		},
-	})
+    tvShowApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    tvShowApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    tvShowApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
+    tvShowApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateShowVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
+        // TODO: enable when frontend is done
+        // AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+        // Authorizer:        authorizer,
+        MethodResponses: generateMethodResponses(),
+    })
 
 	// API gateway subscription resource
 	subscriptionApiResource := api.Root().AddResource(jsii.String("subscription"), nil)
@@ -435,25 +396,12 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			"X-Amz-Security-Token",
 		),
 	})
-	subscriptionApiResource.AddMethod(
-		jsii.String("POST"),
-		awsapigateway.NewLambdaIntegration(
-			queueSubscriptionLambda,
-			generateLambdaIntegrationOptions("'POST,OPTIONS'"),
-		),
-		&awsapigateway.MethodOptions{
+	subscriptionApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(queueSubscriptionLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
 			// TODO: enable when frontend is done
 			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
 			// Authorizer:        authorizer,
-			MethodResponses: &[]*awsapigateway.MethodResponse{{
-				StatusCode: jsii.String("200"),
-				ResponseParameters: &map[string]*bool{
-					"method.response.header.Access-Control-Allow-Origin":  jsii.Bool(true),
-					"method.response.header.Access-Control-Allow-Headers": jsii.Bool(true),
-					"method.response.header.Access-Control-Allow-Methods": jsii.Bool(true),
-				},
-			}},
-		},
+        MethodResponses: generateMethodResponses(),
+    },
 	)
 
 	return stack
