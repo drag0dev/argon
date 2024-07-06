@@ -285,7 +285,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionApiResource := api.Root().AddResource(jsii.String("subscription"), nil)
 	subscriptionApiResource.AddMethod(
 		jsii.String("POST"),
-		awsapigateway.NewLambdaIntegration(subscribeLambda, nil),
+		awsapigateway.NewLambdaIntegration(queueSubscriptionLambda, nil),
 		&awsapigateway.MethodOptions{
 			// TODO: enable when frontend is done
 			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
