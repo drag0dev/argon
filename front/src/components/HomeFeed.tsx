@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'; // Assuming you're using react-router for navigation
 
-
-
 const HomeFeed = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [otherRecommendations, setOtherRecommendations] = useState([]); // New state for other shows
@@ -68,12 +66,48 @@ const HomeFeed = () => {
   const fetchOtherRecommendations = async () => {
     // Simulated fetch for other shows
     const otherData = [
-      { id: 7, title: 'Black Mirror', description: "An anthology series exploring a twisted, high-tech multiverse where humanity's greatest innovations and darkest instincts collide.", type: 'TV Show' },
-      { id: 8, title: 'Breaking Bad', description: 'A high school chemistry teacher turned methamphetamine manufacturing drug dealer teams with a former student...', type: 'TV Show' },
-      { id: 9, title: 'Chernobyl', description: 'A dramatization of the true story of one of the worst man-made catastrophes in history, the catastrophic nuclear accident at Chernobyl.', type: 'TV Show' },
-      { id: 10, title: 'The Mandalorian', description: 'A lone bounty hunter in the outer reaches of the galaxy, far from the authority of the New Republic...', type: 'TV Show' },
-      { id: 11, title: 'Arcane', description: 'Set in the utopian region of Piltover and the oppressed underground of Zaun, the story follows the origins of two iconic League champions-and the power that will tear them apart.', type: 'TV Show' },
-      { id: 12, title: 'Westworld', description: 'Set at the intersection of the near future and the reimagined past, explore a world in which every human appetite can be indulged without consequence.', type: 'TV Show' },
+      {
+        id: 7,
+        title: 'Black Mirror',
+        description:
+          "An anthology series exploring a twisted, high-tech multiverse where humanity's greatest innovations and darkest instincts collide.",
+        type: 'TV Show',
+      },
+      {
+        id: 8,
+        title: 'Breaking Bad',
+        description:
+          'A high school chemistry teacher turned methamphetamine manufacturing drug dealer teams with a former student...',
+        type: 'TV Show',
+      },
+      {
+        id: 9,
+        title: 'Chernobyl',
+        description:
+          'A dramatization of the true story of one of the worst man-made catastrophes in history, the catastrophic nuclear accident at Chernobyl.',
+        type: 'TV Show',
+      },
+      {
+        id: 10,
+        title: 'The Mandalorian',
+        description:
+          'A lone bounty hunter in the outer reaches of the galaxy, far from the authority of the New Republic...',
+        type: 'TV Show',
+      },
+      {
+        id: 11,
+        title: 'Arcane',
+        description:
+          'Set in the utopian region of Piltover and the oppressed underground of Zaun, the story follows the origins of two iconic League champions-and the power that will tear them apart.',
+        type: 'TV Show',
+      },
+      {
+        id: 12,
+        title: 'Westworld',
+        description:
+          'Set at the intersection of the near future and the reimagined past, explore a world in which every human appetite can be indulged without consequence.',
+        type: 'TV Show',
+      },
     ];
     setOtherRecommendations(otherData); // Setting the other recommendations
   };
@@ -93,16 +127,10 @@ const HomeFeed = () => {
               </div>
               <footer className="card-footer">
                 <Link
-                  to={`/${rec.type.toLowerCase()}/${rec.id}`}
+                  to={`/${rec.type.toLowerCase().replace(/\s/g, '')}/${rec.id}/watch`}
                   className="card-footer-item"
                 >
                   Watch Now
-                </Link>
-                <Link
-                  to={`/${rec.type.toLowerCase()}/${rec.id}/details`}
-                  className="card-footer-item"
-                >
-                  Details
                 </Link>
               </footer>
             </div>
@@ -127,16 +155,10 @@ const HomeFeed = () => {
                   </div>
                   <footer className="card-footer">
                     <Link
-                      to={`/${other.type.toLowerCase()}/${other.id}`}
+                      to={`/${other.type.toLowerCase().replace(/\s/g, '')}/${other.id}/watch`}
                       className="card-footer-item"
                     >
                       Watch Now
-                    </Link>
-                    <Link
-                      to={`/${other.type.toLowerCase()}/${other.id}/details`}
-                      className="card-footer-item"
-                    >
-                      Details
                     </Link>
                   </footer>
                 </div>
