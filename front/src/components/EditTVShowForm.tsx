@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave } from '@fortawesome/free-solid-svg-icons';
-import { API_URL } from '../../config.ts';
+
+const API_URL = process.env.API_URL;
 
 interface TVShow {
   id: string;

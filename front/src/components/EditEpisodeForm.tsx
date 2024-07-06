@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
-import { API_URL } from '../../config.ts';
+const API_URL = process.env.API_URL;
 
 interface VideoMetadata {
   type: string;

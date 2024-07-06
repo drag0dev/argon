@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
 
-import { API_URL } from '../../config.ts';
+const API_URL = process.env.API_URL;
 
 const AddMovieForm = () => {
   const [movie, setMovie] = useState({
