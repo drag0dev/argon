@@ -112,6 +112,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		WriteCapacity: jsii.Number(1),
 		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
 	})
+	subscriptionTable.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
+		IndexName: jsii.String("subscription-secondary-index"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("userIdType"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		SortKey: &awsdynamodb.Attribute{
+			Name: jsii.String("target"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("subscription table"), &awscdk.CfnOutputProps{
 		Value:       subscriptionTable.TableName(),
 		Description: jsii.String("subscription-table"),
@@ -225,7 +238,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		},
 	))
 	subscriptionQueue.GrantConsumeMessages(subscribeLambda)
-	subscriptionTable.GrantWriteData(subscribeLambda)
+	subscriptionTable.GrantReadData(queueSubscriptionLambda)
+	subscriptionTable.GrantReadWriteData(subscribeLambda)
 
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{

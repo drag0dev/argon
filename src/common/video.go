@@ -73,7 +73,7 @@ const (
 	Genre
 )
 
-// NOTE: UUID is primary key, generated using google/uuid
+// Subscription NOTE: UUID is primary key, generated using google/uuid
 type Subscription struct {
 	// google/uuid
 	UUID     string           `dynamodbav:"id" json:"id"`
@@ -81,12 +81,16 @@ type Subscription struct {
 	Type     SubscriptionType `dynamodbav:"type" json:"type"`
 	// The thing the user is subscribed to
 	Target string `dynamodbav:"target" json:"target"`
+	// For GSI partition key
+	UserUUIDType string `dynamodbav:"userIdType"`
 }
 
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
 const SubscriptionTableName = "subscription"
+
+const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
 

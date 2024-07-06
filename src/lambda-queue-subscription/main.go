@@ -4,15 +4,20 @@ import (
 	"common"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/jsii-runtime-go"
 	"log"
 	"net/http"
 )
 
+var dynamoDbClient *dynamodb.Client
 var sqsClient *sqs.Client
 
 func queueSubscription(
@@ -26,6 +31,26 @@ func queueSubscription(
 	}
 	if !subscription.IsValid() {
 		return common.ErrorResponse(http.StatusBadRequest, "Malformed input."), nil
+	}
+	subscription.UserUUIDType = fmt.Sprintf("%s#%d", subscription.UserUUID, subscription.Type)
+
+	subscriptionTableName := common.SubscriptionTableName
+	queryInput := &dynamodb.QueryInput{
+		TableName: &subscriptionTableName,
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":userIdType": &types.AttributeValueMemberS{Value: subscription.UserUUIDType},
+			":target":     &types.AttributeValueMemberS{Value: subscription.Target},
+		},
+		IndexName:              jsii.String(common.SubscriptionTableSecondaryIndex),
+		KeyConditionExpression: aws.String("userIdType = :userIdType and target = :target"),
+	}
+	queryOutput, err := dynamoDbClient.Query(context.TODO(), queryInput)
+	if err != nil {
+		log.Printf("Error querying subscriptions: %v", err)
+		return common.ErrorResponse(http.StatusInternalServerError, "Error querying subscriptions."), nil
+	}
+	if queryOutput.Count != 0 {
+		return common.ErrorResponse(http.StatusBadRequest, "Subscription already exists."), nil
 	}
 
 	message, err := json.Marshal(subscription)
@@ -62,6 +87,7 @@ func main() {
 		log.Fatal("Cannot load in default config.")
 	}
 
+	dynamoDbClient = dynamodb.NewFromConfig(sdkConfig)
 	sqsClient = sqs.NewFromConfig(sdkConfig)
 
 	lambda.Start(queueSubscription)

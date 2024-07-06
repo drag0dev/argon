@@ -107,6 +107,9 @@ func IsShowValid(show *Show) bool {
 }
 
 func (subscription *Subscription) IsValid() bool {
+	if len(subscription.UserUUID) == 0 {
+		return false
+	}
 	if len(subscription.Target) == 0 {
 		return false
 	}
