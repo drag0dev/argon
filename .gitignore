@@ -1,4 +1,5 @@
 **/bootstrap
+src/build-system/*-amd64-static
 
 ### ArchLinuxPackages ###
 *.tar
