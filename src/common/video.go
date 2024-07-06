@@ -93,6 +93,7 @@ const SubscriptionTableName = "subscription"
 const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
+const UnsubscriptionQueueName = "unsubscription-queue"
 
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"
