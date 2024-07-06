@@ -53,7 +53,7 @@ func queueUnsubscription(
 	}
 
 	queueUrl, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
-		QueueName: jsii.String(common.SubscriptionQueueName),
+		QueueName: jsii.String(common.UnsubscriptionQueueName),
 	})
 	if err != nil {
 		log.Printf("Error getting queue url: %v", err)
