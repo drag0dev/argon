@@ -7,14 +7,12 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/jsii-runtime-go"
 	"log"
 	"net/http"
 )
 
-var dynamoDbClient *dynamodb.Client
 var sqsClient *sqs.Client
 
 func queueSubscription(
@@ -64,7 +62,6 @@ func main() {
 		log.Fatal("Cannot load in default config.")
 	}
 
-	dynamoDbClient = dynamodb.NewFromConfig(sdkConfig)
 	sqsClient = sqs.NewFromConfig(sdkConfig)
 
 	lambda.Start(queueSubscription)
