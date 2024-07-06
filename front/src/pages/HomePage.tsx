@@ -10,10 +10,10 @@ const HomePage = () => {
             <div className="hero-body">
               <div className="container">
                 <h1 className="title is-1">
-                  Welcome to the Movie/TV Show Tracker
+                  Argon
                 </h1>
                 <h2 className="subtitle is-3">
-                  Keep track of your favorite movies and TV shows
+                  Stable. Noble. Entertainment.
                 </h2>
               </div>
             </div>
