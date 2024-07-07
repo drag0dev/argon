@@ -331,9 +331,9 @@ const AddTVShowForm = () => {
 
   const removeEpisode = (seasonIndex, episodeIndex) => {
     const updatedSeasons = [...show.seasons];
-    updatedSeasons[seasonIndex].episodes = updatedSeasons[seasonIndex].episodes.filter(
-      (_, i) => i !== episodeIndex
-    );
+    updatedSeasons[seasonIndex].episodes = updatedSeasons[
+      seasonIndex
+    ].episodes.filter((_, i) => i !== episodeIndex);
     setShow({ ...show, seasons: updatedSeasons });
   };
 
