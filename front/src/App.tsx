@@ -9,6 +9,9 @@ import EditOrDeleteMoviePage from './pages/EditOrDeleteMoviePage';
 import EditOrDeleteTVShowPage from './pages/EditOrDeleteTVShowPage';
 import WatchPage from './pages/WatchPage';
 import TVShowDetails from './components/TVShowDetails';
+import DocumentationPage from './pages/DocumentationPage';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -19,16 +22,21 @@ const App = () => {
         <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
+
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/docs" element={<DocumentationPage />} />
           <Route path="/movie/add" element={<AddMoviePage />} />
           <Route path="/tvshow/add" element={<AddTVShowPage />} />
           <Route path="/movie/delete" element={<EditOrDeleteMoviePage />} />
           <Route path="/movie/edit" element={<EditOrDeleteMoviePage />} />
           <Route path="/tvshow/delete" element={<EditOrDeleteTVShowPage />} />
           <Route path="/tvshow/edit" element={<EditOrDeleteTVShowPage />} />
-          <Route path="/movie/:id/details" element={<WatchPage />} />
+          <Route path="/movie/:uuid/details" element={<WatchPage />} />
           <Route path="/tvshow/:id/details" element={<TVShowDetails />} />
-          <Route path="/tvshow/:id/watch/:seasonId/:episodeId" element={<WatchPage />} />
+          <Route path="/tvshow/:uuid/watch/:seasonId/:episodeId" element={<WatchPage />} />
         </Routes>
       </div>
     </Router>

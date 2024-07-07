@@ -93,6 +93,7 @@ const SubscriptionTableName = "subscription"
 const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
+const UnsubscriptionQueueName = "unsubscription-queue"
 
 // email consts
 var SenderEmail = "senderargon@gmail.com"

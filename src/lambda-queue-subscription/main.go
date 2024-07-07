@@ -27,7 +27,7 @@ func queueSubscription(
 	var subscription common.Subscription
 	err := json.Unmarshal([]byte(request.Body), &subscription)
 	if err != nil {
-		return common.ErrorResponse(http.StatusBadRequest, "Malformed input."), nil
+		return common.ErrorResponse(http.StatusBadRequest, "Malformed input."), err
 	}
 	if !subscription.IsValid() {
 		return common.ErrorResponse(http.StatusBadRequest, "Malformed input."), nil
@@ -47,7 +47,7 @@ func queueSubscription(
 	queryOutput, err := dynamoDbClient.Query(context.TODO(), queryInput)
 	if err != nil {
 		log.Printf("Error querying subscriptions: %v", err)
-		return common.ErrorResponse(http.StatusInternalServerError, "Error querying subscriptions."), nil
+		return common.ErrorResponse(http.StatusInternalServerError, "Error querying subscriptions."), err
 	}
 	if queryOutput.Count != 0 {
 		return common.ErrorResponse(http.StatusBadRequest, "Subscription already exists."), nil
@@ -55,14 +55,14 @@ func queueSubscription(
 
 	message, err := json.Marshal(subscription)
 	if err != nil {
-		return common.ErrorResponse(http.StatusInternalServerError, "Error marshalling subscription."), nil
+		return common.ErrorResponse(http.StatusInternalServerError, "Error marshalling subscription."), err
 	}
 
 	queueUrl, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
 		QueueName: jsii.String(common.SubscriptionQueueName),
 	})
 	if err != nil {
-		return common.ErrorResponse(http.StatusInternalServerError, "Error getting queue URL."), nil
+		return common.ErrorResponse(http.StatusInternalServerError, "Error getting queue URL."), err
 	}
 
 	input := &sqs.SendMessageInput{
@@ -71,7 +71,7 @@ func queueSubscription(
 	}
 	_, err = sqsClient.SendMessage(context.TODO(), input)
 	if err != nil {
-		return common.ErrorResponse(http.StatusInternalServerError, "Error sending message to queue."), nil
+		return common.ErrorResponse(http.StatusInternalServerError, "Error sending message to queue."), err
 	}
 
 	return events.APIGatewayProxyResponse{
