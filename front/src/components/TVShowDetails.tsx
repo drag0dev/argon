@@ -2,11 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import SeasonDetails from './SeasonDetails';
 import { useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+
+const API_URL = process.env.API_URL;
 
 const dummyDetails = {
   id: 1,
-  title: 'Stranger Things',
+  title: 'placeholder data ? (stuff didnt load)',
   genres: ['Drama', 'Fantasy', 'Horror'],
   actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
   directors: ['The Duffer Brothers'],
@@ -58,16 +61,26 @@ const dummyDetails = {
 
 const TVShowDetails = () => {
   const [tvShow, setTVShow] = React.useState(dummyDetails);
-  const { id } = useParams();
+  const { uuid } = useParams();
 
   useEffect(() => {
-    // Simulated fetch to get video details based on the ID
-    fetchTVShowDetails(id);
-  }, [id]);
+    fetchTVShowDetails(uuid);
+  }, [uuid]);
 
-  const fetchTVShowDetails = async (id) => {
-    // Simulating a fetch call
-    setTVShow(dummyDetails);
+  const fetchTVShowDetails = async (uuid: string) => {
+    try {
+      const url = `${API_URL}/tvShow?uuid=${uuid}&resolution=1920:1080&season=1&episode=1`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch TV show details');
+      }
+
+      const data = await response.json();
+      setTVShow(data.show);
+    } catch (error) {
+      console.error('Error fetching TV show details:', error);
+    }
   };
 
   const handleSubscribe = (type, item) => {
