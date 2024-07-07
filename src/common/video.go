@@ -85,6 +85,18 @@ type Subscription struct {
 	UserUUIDType string `dynamodbav:"userIdType"`
 }
 
+type EditMetadataRequest struct {
+	// The thing whose metadata is being edited
+	TargetUUID    string   `json:"targetId"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	Genres        []string `json:"genres"`
+	Actors        []string `json:"actors"`
+	Directors     []string `json:"directors"`
+	SeasonNumber  *uint64  `json:"seasonNumber"`
+	EpisodeNumber *uint64  `json:"episodeNumber"`
+}
+
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
@@ -94,6 +106,7 @@ const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
+const EditMetadataRequestQueueName = "edit-metadata-request-queue"
 
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"

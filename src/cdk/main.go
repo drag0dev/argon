@@ -182,6 +182,11 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		QueueName: jsii.String("unsubscription-queue"),
 	})
 
+	// edit metadata request queue
+	editMetadataRequestQueue := awssqs.NewQueue(stack, jsii.String("EditMetadataRequestQueue"), &awssqs.QueueProps{
+		QueueName: jsii.String("edit-metadata-request-queue"),
+	})
+
 	// Transcoding lambda
 	ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
 		Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
@@ -332,6 +337,23 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionTable.GrantWriteData(unsubscribeLambda)
 	subscriptionTable.GrantReadWriteData(subscribeLambda)
 
+	// Edit metadata Lambdas
+	queueEditMetadataLambda := awslambda.NewFunction(
+		stack,
+		jsii.String("QueueEditMetadata"),
+		&awslambda.FunctionProps{
+			Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+			Handler: jsii.String("main"),
+			Code: awslambda.Code_FromAsset(
+				jsii.String("../lambda-queue-edit-metadata/function.zip"),
+				&awss3assets.AssetOptions{},
+			),
+		},
+	)
+	editMetadataRequestQueue.GrantSendMessages(queueEditMetadataLambda)
+	movieTable.GrantReadData(queueEditMetadataLambda)
+	showTable.GrantReadData(queueEditMetadataLambda)
+
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.String("ArgonAPI"),
@@ -452,6 +474,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionApiResource.AddMethod(
 		jsii.String("DELETE"),
 		awsapigateway.NewLambdaIntegration(queueUnsubscriptionLambda, generateLambdaIntegrationOptions()),
+		&awsapigateway.MethodOptions{
+			// TODO: enable when frontend is done
+			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			// Authorizer:        authorizer,
+			MethodResponses: generateMethodResponses(),
+		},
+	)
+
+	// API gateway edit metadata resource
+	editMetadataApiResource := api.Root().AddResource(jsii.String("editMetadata"), nil)
+	editMetadataApiResource.AddCorsPreflight(&awsapigateway.CorsOptions{
+		AllowOrigins: awsapigateway.Cors_ALL_ORIGINS(),
+		AllowMethods: jsii.Strings("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+		AllowHeaders: jsii.Strings(
+			"Content-Type",
+			"X-Amz-Date",
+			"Authorization",
+			"X-Api-Key",
+			"X-Amz-Security-Token",
+		),
+	})
+	editMetadataApiResource.AddMethod(
+		jsii.String("PUT"),
+		awsapigateway.NewLambdaIntegration(queueEditMetadataLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
 			// TODO: enable when frontend is done
 			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,

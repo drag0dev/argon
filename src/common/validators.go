@@ -119,3 +119,33 @@ func (subscription *Subscription) IsValid() bool {
 
 	return true
 }
+
+func (editMetadataRequest *EditMetadataRequest) IsValid() bool {
+	if len(editMetadataRequest.TargetUUID) == 0 {
+		return false
+	}
+	if len(editMetadataRequest.Title) == 0 {
+		return false
+	}
+	for _, genre := range editMetadataRequest.Genres {
+		if len(genre) == 0 {
+			return false
+		}
+	}
+	for _, actor := range editMetadataRequest.Actors {
+		if len(actor) == 0 {
+			return false
+		}
+	}
+	if editMetadataRequest.SeasonNumber != nil &&
+		editMetadataRequest.EpisodeNumber != nil &&
+		len(editMetadataRequest.Directors) != 0 {
+		return false
+	}
+	if editMetadataRequest.SeasonNumber != nil && editMetadataRequest.EpisodeNumber == nil ||
+		editMetadataRequest.SeasonNumber == nil && editMetadataRequest.EpisodeNumber != nil {
+		return false
+	}
+
+	return true
+}
