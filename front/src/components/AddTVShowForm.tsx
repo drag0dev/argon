@@ -279,7 +279,10 @@ const AddTVShowForm = () => {
   const handleEpisodeChange = (seasonIndex, episodeIndex, field, value) => {
     const updatedSeasons = [...show.seasons];
     const updatedEpisodes = [...updatedSeasons[seasonIndex].episodes];
-    updatedEpisodes[episodeIndex] = { ...updatedEpisodes[episodeIndex], [field]: value };
+    updatedEpisodes[episodeIndex] = {
+      ...updatedEpisodes[episodeIndex],
+      [field]: value,
+    };
     updatedSeasons[seasonIndex].episodes = updatedEpisodes;
     setShow({ ...show, seasons: updatedSeasons });
   };
