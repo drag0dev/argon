@@ -126,6 +126,16 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
+    star := "*"
+    videoBucket.AddCorsRule(&awss3.CorsRule{
+        AllowedMethods: &[]awss3.HttpMethods{
+            awss3.HttpMethods_GET,
+            awss3.HttpMethods_PUT,
+            awss3.HttpMethods_POST,
+        },
+        AllowedOrigins: &[]*string{&star},
+        AllowedHeaders: &[]*string{&star},
+    })
 	awscdk.NewCfnOutput(stack, jsii.String("argon videos bucket"), &awscdk.CfnOutputProps{
 		Value:       jsii.String("argon-videos-bucket"),
 		Description: jsii.String("argon-videos-bucket"),
