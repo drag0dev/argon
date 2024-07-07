@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
@@ -230,6 +230,32 @@ const AddTVShowForm = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Function to insert dummy data
+  const insertDummyData = (n) => {
+    const selectedShow = dummyTVShows[n];
+    setShow({
+      title: selectedShow.title,
+      description: selectedShow.description || '',
+      genres: selectedShow.genres,
+      actors: selectedShow.actors,
+      directors: selectedShow.directors,
+      seasons: selectedShow.seasons.map((season) => ({
+        seasonNumber: season.seasonNumber,
+        episodes: season.episodes.map((episode) => ({
+          ...episode,
+          video: null, // Set video to null as we don't have actual video files for dummy data
+        })),
+      })),
+    });
+  };
+
+  useEffect(() => {
+    window.insertDummyData = insertDummyData;
+    return () => {
+      window.insertDummyData = undefined;
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
