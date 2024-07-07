@@ -34,9 +34,9 @@ const App = () => {
           <Route path="/movie/edit" element={<EditOrDeleteMoviePage />} />
           <Route path="/tvshow/delete" element={<EditOrDeleteTVShowPage />} />
           <Route path="/tvshow/edit" element={<EditOrDeleteTVShowPage />} />
-          <Route path="/movie/:id/details" element={<WatchPage />} />
+          <Route path="/movie/:uuid/details" element={<WatchPage />} />
           <Route path="/tvshow/:id/details" element={<TVShowDetails />} />
-          <Route path="/tvshow/:id/watch/:seasonId/:episodeId" element={<WatchPage />} />
+          <Route path="/tvshow/:uuid/watch/:seasonId/:episodeId" element={<WatchPage />} />
         </Routes>
       </div>
     </Router>
