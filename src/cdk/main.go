@@ -1,19 +1,23 @@
 package main
 
 import (
-	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"os"
+    "common"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscognito"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"github.com/aws/constructs-go/constructs/v10"
+     "github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/jsii-runtime-go"
 )
 
@@ -62,6 +66,22 @@ func generateMethodResponses() *[]*awsapigateway.MethodResponse {
 func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackProps) awscdk.Stack {
 	stack := awscdk.NewStack(scope, &id, props)
 
+
+
+
+    // publishing topic
+    publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
+        TopicName: jsii.String("publishing-topic"),
+    })
+
+    // notification queue
+    notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
+        QueueName: jsii.String("notification-queue"),
+        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+    })
+    publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
+
+
 	// Create a Cognito User Pool
 	userPool := awscognito.NewUserPool(stack, jsii.String("ArgonUserPool"), &awscognito.UserPoolProps{
 		UserPoolName:      jsii.String("argon-user-pool"),
@@ -97,6 +117,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Value:       userPoolClient.UserPoolClientId(),
 		Description: jsii.String("ArgonFrontend"),
 	})
+
+
 
 	// Video bucket
 	videoBucket := awss3.NewBucket(stack, jsii.String("argon-videos-bucket"), &awss3.BucketProps{
@@ -177,38 +199,81 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		QueueName: jsii.String("subscription-queue"),
 	})
 
+
+    // SES
+    senderEmailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonSenderEmailIdentity"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.SenderEmail)),
+    })
+    receiverEmailOneIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityOne"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail1)),
+    })
+    receiverEmailTwoIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityTwo"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail2)),
+    })
+    // configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
+    //     ConfigurationSetName: jsii.String("argon-email-config-set"),
+    // })
+
+
+    // create notifications lambda
+    createNotificationLambda := awslambda.NewFunction(stack, jsii.String("CreateNotificationLambda"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-create-notification/function.zip"), &awss3assets.AssetOptions{}),
+        Environment: &map[string]*string{
+            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+        },
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
+    })
+    createNotificationLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(notificationQueue, &awslambdaeventsources.SqsEventSourceProps{
+        BatchSize: jsii.Number(1),
+    }))
+    notificationQueue.GrantConsumeMessages(createNotificationLambda)
+    adminGetUserPermission := "cognito-idp:AdminGetUser"
+    userPool.Grant(createNotificationLambda, &adminGetUserPermission)
+    senderEmailIdentity.GrantSendEmail(createNotificationLambda)
+    subscriptionTable.GrantReadData(createNotificationLambda)
+    movieTable.GrantReadData(createNotificationLambda)
+    showTable.GrantReadData(createNotificationLambda)
+    receiverEmailOneIdentity.GrantSendEmail(createNotificationLambda)
+    receiverEmailTwoIdentity.GrantSendEmail(createNotificationLambda)
+
+    // Transcoding lambda
+    ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
+        Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
+        Description: jsii.String("FFmpeg binary"),
+        CompatibleRuntimes: &[]awslambda.Runtime{
+            awslambda.Runtime_PROVIDED_AL2023(),
+        },
+    })
+    transcoderLambda := awslambda.NewFunction(stack, jsii.String("VideoTranscoding"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(2)),
+        MemorySize: jsii.Number(1024),
+        Layers: &[]awslambda.ILayerVersion{
+            ffmpegLayer,
+        },
+        Environment: &map[string]*string{
+            "PUBLISHING_TOPIC_ARN": publishingTopic.TopicArn(),
+        },
+    })
+    videoBucket.GrantReadWrite(transcoderLambda, jsii.String("*"))
+    videoBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED,
+        awss3notifications.NewLambdaDestination(transcoderLambda),
+        &awss3.NotificationKeyFilter{
+            Suffix: jsii.String("_original"),
+        },
+    )
+    movieTable.GrantReadWriteData(transcoderLambda)
+    showTable.GrantReadWriteData(transcoderLambda)
+    publishingTopic.GrantPublish(transcoderLambda)
+
 	// unsubscription queue
 	unsubscriptionQueue := awssqs.NewQueue(stack, jsii.String("UnsubscriptionQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("unsubscription-queue"),
 	})
-
-	// Transcoding lambda
-	ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
-		Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
-		Description: jsii.String("FFmpeg binary"),
-		CompatibleRuntimes: &[]awslambda.Runtime{
-			awslambda.Runtime_PROVIDED_AL2023(),
-		},
-	})
-	transcoderLambda := awslambda.NewFunction(stack, jsii.String("VideoTranscoding"), &awslambda.FunctionProps{
-		Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
-		Handler:    jsii.String("main"),
-		Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
-		Timeout:    awscdk.Duration_Minutes(jsii.Number(2)),
-		MemorySize: jsii.Number(1024),
-		Layers: &[]awslambda.ILayerVersion{
-			ffmpegLayer,
-		},
-	})
-	videoBucket.GrantReadWrite(transcoderLambda, jsii.String("*"))
-	videoBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED,
-		awss3notifications.NewLambdaDestination(transcoderLambda),
-		&awss3.NotificationKeyFilter{
-			Suffix: jsii.String("_original"),
-		},
-	)
-	movieTable.GrantReadWriteData(transcoderLambda)
-	showTable.GrantReadWriteData(transcoderLambda)
 
 	// Movie Lambdas
 	getMovieLambda := awslambda.NewFunction(stack, jsii.String("GetMovie"), &awslambda.FunctionProps{
