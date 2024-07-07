@@ -337,6 +337,12 @@ const AddTVShowForm = () => {
     setShow({ ...show, seasons: updatedSeasons });
   };
 
+  const allEpisodesHaveVideos = () => {
+    return show.seasons.every((season) =>
+      season.episodes.every((episode) => episode.video?.file),
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
