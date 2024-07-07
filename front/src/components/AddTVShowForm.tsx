@@ -549,7 +549,12 @@ const AddTVShowForm = () => {
                       type="text"
                       value={episode.title}
                       onChange={(e) =>
-                        handleEpisodeChange(seasonIndex, episodeIndex, 'title', e.target.value)
+                        handleEpisodeChange(
+                          seasonIndex,
+                          episodeIndex,
+                          'title',
+                          e.target.value,
+                        )
                       }
                       required
                     />
@@ -563,7 +568,12 @@ const AddTVShowForm = () => {
                       className="textarea"
                       value={episode.description}
                       onChange={(e) =>
-                        handleEpisodeChange(seasonIndex, episodeIndex, 'description', e.target.value)
+                        handleEpisodeChange(
+                          seasonIndex,
+                          episodeIndex,
+                          'description',
+                          e.target.value,
+                        )
                       }
                       required
                     />
@@ -582,7 +592,7 @@ const AddTVShowForm = () => {
                           seasonIndex,
                           episodeIndex,
                           'actors',
-                          e.target.value.split(',').map((item) => item.trim())
+                          e.target.value.split(',').map((item) => item.trim()),
                         )
                       }
                     />
@@ -601,7 +611,7 @@ const AddTVShowForm = () => {
                           seasonIndex,
                           episodeIndex,
                           'directors',
-                          e.target.value.split(',').map((item) => item.trim())
+                          e.target.value.split(',').map((item) => item.trim()),
                         )
                       }
                     />
@@ -626,7 +636,11 @@ const AddTVShowForm = () => {
           </div>
         ))}
 
-        <button type="button" className="button is-primary mt-4" onClick={addSeason}>
+        <button
+          type="button"
+          className="button is-primary mt-4"
+          onClick={addSeason}
+        >
           <FontAwesomeIcon icon={faPlus} /> Add Season
         </button>
 
@@ -635,7 +649,11 @@ const AddTVShowForm = () => {
             <button
               type="submit"
               className="button is-primary"
-              disabled={isLoading || show.seasons.some((s) => s.episodes.length === 0)}
+              disabled={
+                isLoading ||
+                show.seasons.some((s) => s.episodes.length === 0) ||
+                !allEpisodesHaveVideos()
+              }
             >
               <span className="icon">
                 <FontAwesomeIcon icon={faPlus} />
