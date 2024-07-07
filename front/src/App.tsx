@@ -9,6 +9,7 @@ import EditOrDeleteMoviePage from './pages/EditOrDeleteMoviePage';
 import EditOrDeleteTVShowPage from './pages/EditOrDeleteTVShowPage';
 import WatchPage from './pages/WatchPage';
 import TVShowDetails from './components/TVShowDetails';
+import DocumentationPage from './pages/DocumentationPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 
@@ -26,6 +27,7 @@ const App = () => {
           <Route path="/register" element={<RegisterPage />} />
 
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/docs" element={<DocumentationPage />} />
           <Route path="/movie/add" element={<AddMoviePage />} />
           <Route path="/tvshow/add" element={<AddTVShowPage />} />
           <Route path="/movie/delete" element={<EditOrDeleteMoviePage />} />
