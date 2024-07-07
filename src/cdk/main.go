@@ -182,6 +182,11 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		QueueName: jsii.String("unsubscription-queue"),
 	})
 
+	// review queue
+	reviewQueue := awssqs.NewQueue(stack, jsii.String("ReviewQueue"), &awssqs.QueueProps{
+		QueueName: jsii.String("review-queue"),
+	})
+
 	// Transcoding lambda
 	ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
 		Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
@@ -332,6 +337,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionTable.GrantWriteData(unsubscribeLambda)
 	subscriptionTable.GrantReadWriteData(subscribeLambda)
 
+	// Review Lambdas
+	queueReviewLambda := awslambda.NewFunction(stack, jsii.String("QueueReview"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code: awslambda.Code_FromAsset(
+			jsii.String("../lambda-queue-review/function.zip"),
+			&awss3assets.AssetOptions{},
+		),
+	})
+	reviewQueue.GrantSendMessages(queueReviewLambda)
+	movieTable.GrantReadData(queueReviewLambda)
+	showTable.GrantReadData(queueReviewLambda)
+
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.String("ArgonAPI"),
@@ -452,6 +470,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionApiResource.AddMethod(
 		jsii.String("DELETE"),
 		awsapigateway.NewLambdaIntegration(queueUnsubscriptionLambda, generateLambdaIntegrationOptions()),
+		&awsapigateway.MethodOptions{
+			// TODO: enable when frontend is done
+			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			// Authorizer:        authorizer,
+			MethodResponses: generateMethodResponses(),
+		},
+	)
+
+	// API gateway review resource
+	reviewApiResource := api.Root().AddResource(jsii.String("review"), nil)
+	reviewApiResource.AddCorsPreflight(&awsapigateway.CorsOptions{
+		AllowOrigins: awsapigateway.Cors_ALL_ORIGINS(),
+		AllowMethods: jsii.Strings("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+		AllowHeaders: jsii.Strings(
+			"Content-Type",
+			"X-Amz-Date",
+			"Authorization",
+			"X-Api-Key",
+			"X-Amz-Security-Token",
+		),
+	})
+	reviewApiResource.AddMethod(
+		jsii.String("POST"),
+		awsapigateway.NewLambdaIntegration(queueReviewLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
 			// TODO: enable when frontend is done
 			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
