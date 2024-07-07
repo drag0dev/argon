@@ -304,7 +304,10 @@ const AddTVShowForm = () => {
   const addSeason = () => {
     setShow({
       ...show,
-      seasons: [...show.seasons, { seasonNumber: show.seasons.length + 1, episodes: [] }],
+      seasons: [
+        ...show.seasons,
+        { seasonNumber: show.seasons.length + 1, episodes: [] },
+      ],
     });
   };
 
