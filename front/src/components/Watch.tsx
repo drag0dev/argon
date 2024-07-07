@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
+import ReviewSection from '../components/ReviewSection';
 
 const Watch = () => {
   const [videoInfo, setVideoInfo] = useState(null);
@@ -29,7 +30,8 @@ const Watch = () => {
       details = {
         id: id,
         title: 'Inception',
-        description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
+        description:
+          'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
         type: 'Movie',
         videoUrl: 'https://www.youtube.com/watch?v=YoHD9XEInc0',
         genres: ['Action', 'Adventure', 'Sci-Fi'],
@@ -52,18 +54,31 @@ const Watch = () => {
     <div className="container mt-5">
       <h1 className="title">{videoInfo.title}</h1>
       {seasonId && episodeId && (
-        <h3 className="subtitle">Season {seasonId}, Episode {episodeId}</h3>
+        <h3 className="subtitle">
+          Season {seasonId}, Episode {episodeId}
+        </h3>
       )}
       <ReactPlayer url={videoInfo.videoUrl} controls={true} className="mb-4" />
       <div className="content">
-        <p><strong>Type:</strong> {videoInfo.type}</p>
-        <p><strong>Description:</strong> {videoInfo.description}</p>
+        <p>
+          <strong>Type:</strong> {videoInfo.type}
+        </p>
+        <p>
+          <strong>Description:</strong> {videoInfo.description}
+        </p>
         <div>
           <strong>Genres:</strong>
           <ul>
-            {videoInfo.genres.map(genre => (
+            {videoInfo.genres.map((genre) => (
               <li key={genre}>
-                {genre} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Genre', genre)}>Subscribe</button>
+                {genre}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Genre', genre)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
@@ -71,9 +86,16 @@ const Watch = () => {
         <div>
           <strong>Actors:</strong>
           <ul>
-            {videoInfo.actors.map(actor => (
+            {videoInfo.actors.map((actor) => (
               <li key={actor}>
-                {actor} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Actor', actor)}>Subscribe</button>
+                {actor}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Actor', actor)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
@@ -81,14 +103,23 @@ const Watch = () => {
         <div>
           <strong>Directors:</strong>
           <ul>
-            {videoInfo.directors.map(director => (
+            {videoInfo.directors.map((director) => (
               <li key={director}>
-                {director} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Director', director)}>Subscribe</button>
+                {director}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Director', director)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
         </div>
       </div>
+
+      <ReviewSection targetUUID={id} />
     </div>
   );
 };
