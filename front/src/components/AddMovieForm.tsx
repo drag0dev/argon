@@ -99,7 +99,7 @@ const AddMovieForm = () => {
       video: {
         file,
         fileType: metadata.type,
-        fileSize: metadata.size,
+        fileSize: +metadata.size, // this should be illegal
         creationTimestamp: metadata.lastModified.getTime(),
         lastChangeTimestamp: Date.now(),
       },
