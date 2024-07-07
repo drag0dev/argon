@@ -126,10 +126,8 @@ const AddMovieForm = () => {
         },
       };
 
-      const url = `${API_URL}/api/movies`;
-
       // Step 1: Send movie metadata and get upload URL
-      const metadataResponse = await fetch(url, {
+      const metadataResponse = await fetch(`${API_URL}/movie`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,13 +139,16 @@ const AddMovieForm = () => {
         throw new Error('Failed to submit movie metadata');
       }
 
-      console.log(await metadataResponse.json());
+      console.log('Movie metadata submitted successfully');
 
-      const { uploadUrl, movieId } = await metadataResponse.json();
+      const { url, method } = await metadataResponse.json();
+
+      console.log('Received upload URL:', url);
+      console.log('Received upload method:', method);
 
       // Step 2: Upload the video file directly
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
+      const uploadResponse = await fetch(url, {
+        method: method,
         body: movie.video.file,
         headers: {
           'Content-Type': movie.video.fileType,
@@ -158,7 +159,7 @@ const AddMovieForm = () => {
         throw new Error('Failed to upload video file');
       }
 
-      console.log('Movie and video uploaded successfully. Movie ID:', movieId);
+      console.log('Movie and video uploaded successfully.');
 
       // Clear the form
       setMovie({
