@@ -10,6 +10,8 @@ import EditOrDeleteTVShowPage from './pages/EditOrDeleteTVShowPage';
 import WatchPage from './pages/WatchPage';
 import TVShowDetails from './components/TVShowDetails';
 import DocumentationPage from './pages/DocumentationPage';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -20,6 +22,10 @@ const App = () => {
         <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
+
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
           <Route path="/about" element={<AboutPage />} />
           <Route path="/docs" element={<DocumentationPage />} />
           <Route path="/movie/add" element={<AddMoviePage />} />
