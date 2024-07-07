@@ -3,7 +3,6 @@ package main
 import (
 	"common"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -109,12 +108,14 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
         // only emit publish notification if this is is not an update
         if (!update) {
             // emit publish notification
-            notification := common.PublishNotification{}
+            var notification string
             if (len(nameParts) == 6) {
-                notification.MovieUUID = uuid
+                notification = "movie~" + uuid
             } else {
                 // tv shows can be uploaded in bulk therefore we need to wait for all episodes to be uploaded
                 // before emitting a notification
+                notification = "show~" + uuid
+
                 showReadyForPublish := true
                 outer: for _, season := range show.Seasons {
                     for _, episode := range season.Episodes {
@@ -124,20 +125,13 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
                         }
                     }
                 }
-                notification.ShowUUID = uuid
                 if (!showReadyForPublish) { continue }
             }
 
 
-            marshaledNotification, err := json.Marshal(notification)
-            if (err != nil) {
-                log.Printf("Error marshaling notification: %v\n", err)
-                return errors.New(fmt.Sprintf("Error marshaling notification: %v\n", err))
-            }
-
             log.Printf("Emitting to topic: %s\n", publishingTopicARN)
             _, err = snsClient.Publish(context.TODO(), &sns.PublishInput{
-                Message: aws.String(string(marshaledNotification)),
+                Message: aws.String(string(notification)),
                 TopicArn: aws.String(publishingTopicARN),
             })
 

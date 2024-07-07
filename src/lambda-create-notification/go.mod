@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.41.1
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.34.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.32.1
+	github.com/bits-and-blooms/bloom/v3 v3.7.0
 )
 
 require (
@@ -28,6 +29,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.1 // indirect
 	github.com/aws/smithy-go v1.20.3 // indirect
+	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 )
 

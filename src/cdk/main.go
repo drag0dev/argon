@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+    "common"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
@@ -68,6 +69,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
     // notification queue
     notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
         QueueName: jsii.String("notification-queue"),
+        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
     })
     publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
 
@@ -192,12 +194,18 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 
 
     // SES
-    emailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonEmailIdentity"), &awsses.EmailIdentityProps{
-        Identity: awsses.Identity_Email(jsii.String("your-email@example.com")),
+    senderEmailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonSenderEmailIdentity"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.SenderEmail)),
     })
-    configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
-        ConfigurationSetName: jsii.String("argon-email-config-set"),
+    receiverEmailOneIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityOne"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail1)),
     })
+    receiverEmailTwoIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityTwo"), &awsses.EmailIdentityProps{
+        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail2)),
+    })
+    // configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
+    //     ConfigurationSetName: jsii.String("argon-email-config-set"),
+    // })
 
 
     // create notifications lambda
@@ -207,17 +215,21 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         Code:       awslambda.Code_FromAsset(jsii.String("../lambda-create-notification/function.zip"), &awss3assets.AssetOptions{}),
         Environment: &map[string]*string{
             "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
-            "SES_CONFIG_SET": configSet.ConfigurationSetName(),
-            "SES_EMAIL_IDENTITY": emailIdentity.EmailIdentityName(),
         },
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
     })
     createNotificationLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(notificationQueue, &awslambdaeventsources.SqsEventSourceProps{
         BatchSize: jsii.Number(1),
     }))
     notificationQueue.GrantConsumeMessages(createNotificationLambda)
-    adminGetUserPermission := "cognito-idp:AdmingGetUser"
+    adminGetUserPermission := "cognito-idp:AdminGetUser"
     userPool.Grant(createNotificationLambda, &adminGetUserPermission)
-    emailIdentity.GrantSendEmail(createNotificationLambda)
+    senderEmailIdentity.GrantSendEmail(createNotificationLambda)
+    subscriptionTable.GrantReadData(createNotificationLambda)
+    movieTable.GrantReadData(createNotificationLambda)
+    showTable.GrantReadData(createNotificationLambda)
+    receiverEmailOneIdentity.GrantSendEmail(createNotificationLambda)
+    receiverEmailTwoIdentity.GrantSendEmail(createNotificationLambda)
 
     // Transcoding lambda
     ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
