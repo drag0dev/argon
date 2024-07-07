@@ -29,6 +29,7 @@ type GetShowEvent struct {
 type GetShowResponse struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
+    Data common.Show         `json:"show"`
 }
 
 var s3PresignClient *s3.PresignClient;
@@ -123,6 +124,7 @@ func getShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest)
     res := GetShowResponse{
         Url: request.URL,
         Method: request.Method,
+        Data: show,
     }
     resString, err := json.Marshal(res)
     if (err != nil) {
