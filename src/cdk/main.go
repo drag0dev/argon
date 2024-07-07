@@ -172,6 +172,23 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Description: jsii.String("subscription-table"),
 	})
 
+	// Review table
+	reviewTable := awsdynamodb.NewTable(stack, jsii.String("review-table"), &awsdynamodb.TableProps{
+		TableName: jsii.String("review"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("id"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("review table"), &awscdk.CfnOutputProps{
+		Value:       reviewTable.TableName(),
+		Description: jsii.String("review-table"),
+	})
+
 	// subscription queue
 	subscriptionQueue := awssqs.NewQueue(stack, jsii.String("SubscriptionQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("subscription-queue"),
@@ -346,9 +363,27 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			&awss3assets.AssetOptions{},
 		),
 	})
+	reviewLambda := awslambda.NewFunction(stack, jsii.String("Review"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code: awslambda.Code_FromAsset(
+			jsii.String("../lambda-review/function.zip"),
+			&awss3assets.AssetOptions{},
+		),
+	})
 	reviewQueue.GrantSendMessages(queueReviewLambda)
+	reviewLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
+		reviewQueue,
+		&awslambdaeventsources.SqsEventSourceProps{
+			BatchSize: jsii.Number(1),
+		},
+	))
+	reviewQueue.GrantConsumeMessages(reviewLambda)
 	movieTable.GrantReadData(queueReviewLambda)
 	showTable.GrantReadData(queueReviewLambda)
+	movieTable.GrantReadData(reviewLambda)
+	showTable.GrantReadData(reviewLambda)
+	reviewTable.GrantWriteData(reviewLambda)
 
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
