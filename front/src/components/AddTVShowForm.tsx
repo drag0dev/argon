@@ -346,7 +346,6 @@ const AddTVShowForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       // Prepare the show data
       const showData = {
@@ -363,17 +362,19 @@ const AddTVShowForm = () => {
             description: episode.description,
             actors: episode.actors,
             directors: episode.directors,
-            video: {
-              fileType: episode.video.fileType,
-              fileSize: episode.video.fileSize,
-              creationTimestamp: episode.video.creationTimestamp,
-              lastChangeTimestamp: episode.video.lastChangeTimestamp,
-            },
+            video: episode.video
+              ? {
+                  fileType: episode.video.fileType,
+                  fileSize: episode.video.fileSize,
+                  creationTimestamp: episode.video.creationTimestamp,
+                  lastChangeTimestamp: episode.video.lastChangeTimestamp,
+                }
+              : null,
           })),
         })),
       };
 
-      const url = `${API_URL}/api/shows`;
+      const url = `${API_URL}/tvShow`;
 
       // Step 1: Send show metadata and get upload URLs
       const metadataResponse = await fetch(url, {
@@ -388,25 +389,38 @@ const AddTVShowForm = () => {
         throw new Error('Failed to submit show metadata');
       }
 
-      const { uploadUrls, showId } = await metadataResponse.json();
+      const { urls, showId } = await metadataResponse.json();
 
-      // Step 2: Upload video files
-      for (let i = 0; i < show.seasons.length; i++) {
-        for (let j = 0; j < show.seasons[i].episodes.length; j++) {
-          const episode = show.seasons[i].episodes[j];
-          const uploadUrl = uploadUrls[i][j];
+      // Step 2: Upload video files (only for episodes with video data)
+      for (const uploadInfo of urls) {
+        const {
+          seasonNumber,
+          episodeNumber,
+          url: uploadUrl,
+          method,
+        } = uploadInfo;
+        const season = show.seasons.find(
+          (s) => s.seasonNumber === seasonNumber,
+        );
+        if (!season) continue;
 
-          const uploadResponse = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: episode.video.file,
-            headers: {
-              'Content-Type': episode.video.fileType,
-            },
-          });
+        const episode = season.episodes.find(
+          (e) => e.episodeNumber === episodeNumber,
+        );
+        if (!episode || !episode.video?.file) continue;
 
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload video file for S${i + 1}E${j + 1}`);
-          }
+        const uploadResponse = await fetch(uploadUrl, {
+          method: method,
+          body: episode.video.file,
+          headers: {
+            'Content-Type': episode.video.fileType,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(
+            `Failed to upload video file for S${seasonNumber}E${episodeNumber}`,
+          );
         }
       }
 
