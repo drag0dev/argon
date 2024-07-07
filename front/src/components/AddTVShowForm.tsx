@@ -5,6 +5,220 @@ import VideoUpload from './VideoUpload';
 
 const API_URL = process.env.API_URL;
 
+const dummyTVShows = [
+  {
+    id: 1,
+    title: 'Stranger Things',
+    genres: ['Drama', 'Fantasy', 'Horror'],
+    actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
+    directors: ['The Duffer Brothers'],
+    description:
+      "In a small town where supernatural forces loom, a young boy's mysterious disappearance sets off a chain of events uncovering government experiments and alternate dimensions.",
+    seasons: [
+      {
+        seasonNumber: 1,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'The Vanishing of Will Byers',
+            description:
+              'A young boy disappears, leading to an investigation involving supernatural forces.',
+            actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
+            directors: ['The Duffer Brothers'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'The Weirdo on Maple Street',
+            description:
+              "A girl with a shaved head and strange powers appears, providing a clue to Will's disappearance.",
+            actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
+            directors: ['The Duffer Brothers'],
+          },
+        ],
+      },
+      {
+        seasonNumber: 2,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'MADMAX',
+            description:
+              'The boys encounter a new girl at school while supernatural events continue to plague the town.',
+            actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
+            directors: ['The Duffer Brothers'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'Trick or Treat, Freak',
+            description:
+              'Will struggles to adjust to life after the Upside Down as Halloween approaches.',
+            actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
+            directors: ['The Duffer Brothers'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Breaking Bad',
+    genres: ['Crime', 'Drama', 'Thriller'],
+    actors: ['Bryan Cranston', 'Aaron Paul', 'Anna Gunn'],
+    directors: ['Vince Gilligan'],
+    description:
+      "A high school chemistry teacher, diagnosed with terminal cancer, turns to manufacturing and selling methamphetamine to secure his family's financial future, leading to a dangerous descent into the criminal underworld.",
+    seasons: [
+      {
+        seasonNumber: 1,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'Pilot',
+            description:
+              'A high school chemistry teacher turns to making and selling methamphetamine.',
+            actors: ['Bryan Cranston', 'Aaron Paul', 'Anna Gunn'],
+            directors: ['Vince Gilligan'],
+          },
+          {
+            episodeNumber: 2,
+            title: "Cat's in the Bag...",
+            description:
+              'Walter and Jesse attempt to dispose of the bodies from their first cook.',
+            actors: ['Bryan Cranston', 'Aaron Paul', 'Anna Gunn'],
+            directors: ['Vince Gilligan'],
+          },
+        ],
+      },
+      {
+        seasonNumber: 2,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'Seven Thirty-Seven',
+            description:
+              "Walter and Jesse's operation faces new threats and challenges.",
+            actors: ['Bryan Cranston', 'Aaron Paul', 'Anna Gunn'],
+            directors: ['Vince Gilligan'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'Grilled',
+            description:
+              'Tuco takes Walter and Jesse hostage as the DEA closes in.',
+            actors: ['Bryan Cranston', 'Aaron Paul', 'Anna Gunn'],
+            directors: ['Vince Gilligan'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 3,
+    title: 'The Witcher',
+    genres: ['Action', 'Adventure', 'Fantasy'],
+    actors: ['Henry Cavill', 'Anya Chalotra', 'Freya Allan'],
+    directors: ['Lauren Schmidt Hissrich'],
+    description:
+      'Geralt of Rivia, a solitary monster hunter, navigates a world where powerful sorceresses, cunning kings, and dangerous creatures vie for dominance, while destiny binds him to a young princess with a mysterious past.',
+    seasons: [
+      {
+        seasonNumber: 1,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: "The End's Beginning",
+            description:
+              'Geralt of Rivia, a mutated monster hunter, struggles to find his place in a world where people often prove more wicked than beasts.',
+            actors: ['Henry Cavill', 'Anya Chalotra', 'Freya Allan'],
+            directors: ['Lauren Schmidt Hissrich'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'Four Marks',
+            description:
+              "Yennefer's early days as a sorceress and her path to power are revealed.",
+            actors: ['Henry Cavill', 'Anya Chalotra', 'Freya Allan'],
+            directors: ['Lauren Schmidt Hissrich'],
+          },
+        ],
+      },
+      {
+        seasonNumber: 2,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'A Grain of Truth',
+            description:
+              'Geralt reunites with an old friend as he seeks safety for Ciri.',
+            actors: ['Henry Cavill', 'Anya Chalotra', 'Freya Allan'],
+            directors: ['Lauren Schmidt Hissrich'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'Kaer Morhen',
+            description: 'Ciri trains with the witchers at their fortress.',
+            actors: ['Henry Cavill', 'Anya Chalotra', 'Freya Allan'],
+            directors: ['Lauren Schmidt Hissrich'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 4,
+    title: 'Black Mirror',
+    genres: ['Drama', 'Sci-Fi', 'Thriller'],
+    actors: ['Bryce Dallas Howard', 'Daniel Kaluuya', 'Jon Hamm'],
+    directors: ['Charlie Brooker'],
+    description:
+      'Each episode of this anthology series explores a standalone story, often dystopian and thought-provoking, highlighting the dark side of technology and its impact on modern society through twisted, provocative narratives.',
+    seasons: [
+      {
+        seasonNumber: 1,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'The National Anthem',
+            description:
+              'A twisted tale of a prime minister faced with a horrifying choice.',
+            actors: ['Bryce Dallas Howard', 'Daniel Kaluuya', 'Jon Hamm'],
+            directors: ['Charlie Brooker'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'Fifteen Million Merits',
+            description:
+              'In a dystopian future, society is controlled by technology and the meritocracy.',
+            actors: ['Bryce Dallas Howard', 'Daniel Kaluuya', 'Jon Hamm'],
+            directors: ['Charlie Brooker'],
+          },
+        ],
+      },
+      {
+        seasonNumber: 2,
+        episodes: [
+          {
+            episodeNumber: 1,
+            title: 'Be Right Back',
+            description:
+              'A grieving woman uses technology to reconnect with her deceased partner.',
+            actors: ['Bryce Dallas Howard', 'Daniel Kaluuya', 'Jon Hamm'],
+            directors: ['Charlie Brooker'],
+          },
+          {
+            episodeNumber: 2,
+            title: 'White Bear',
+            description:
+              'A woman awakes in a strange dystopian world where she is relentlessly pursued.',
+            actors: ['Bryce Dallas Howard', 'Daniel Kaluuya', 'Jon Hamm'],
+            directors: ['Charlie Brooker'],
+          },
+        ],
+      },
+    ],
+  },
+];
+
 const AddTVShowForm = () => {
   const [show, setShow] = useState({
     title: '',
