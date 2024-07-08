@@ -350,9 +350,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			),
 		},
 	)
+	editMetadataLambda := awslambda.NewFunction(
+		stack,
+		jsii.String("EditMetadata"),
+		&awslambda.FunctionProps{
+			Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+			Handler: jsii.String("main"),
+			Code: awslambda.Code_FromAsset(
+				jsii.String("../lambda-edit-metadata/function.zip"),
+				&awss3assets.AssetOptions{},
+			),
+		},
+	)
 	editMetadataRequestQueue.GrantSendMessages(queueEditMetadataLambda)
+	editMetadataLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
+		editMetadataRequestQueue,
+		&awslambdaeventsources.SqsEventSourceProps{
+			BatchSize: jsii.Number(1),
+		},
+	))
+	editMetadataRequestQueue.GrantConsumeMessages(editMetadataLambda)
 	movieTable.GrantReadData(queueEditMetadataLambda)
+	movieTable.GrantReadWriteData(editMetadataLambda)
 	showTable.GrantReadData(queueEditMetadataLambda)
+	showTable.GrantReadWriteData(editMetadataLambda)
 
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
