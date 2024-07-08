@@ -8,6 +8,7 @@ const API_URL = process.env.API_URL;
 
 const Watch = () => {
   const [videoInfo, setVideoInfo] = useState(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { uuid, seasonId, episodeId } = useParams();
@@ -53,8 +54,10 @@ const Watch = () => {
         );
 
         setVideoInfo(episode);
+        setVideoUrl(data.url);
       } else {
         setVideoInfo(data.movie);
+        setVideoUrl(data.url);
       }
     } catch (error) {
       console.error('Error fetching video details:', error);
@@ -128,7 +131,16 @@ const Watch = () => {
           Season {seasonId}, Episode {episodeId}
         </h3>
       )}
-      <ReactPlayer url={videoInfo.url} controls={true} className="mb-4" />
+      <ReactPlayer url={videoUrl} controls={true} className="mb-4" />
+      {videoUrl && (
+        <a
+          href={videoUrl}
+          className="button is-link"
+          download={`${videoInfo.title.replace(/\s/g, '_')}.mp4`} // replace spaces with underscores and add file extension
+        >
+          Download Video
+        </a>
+      )}
       <div className="content">
         <p>
           <strong>Description:</strong> {videoInfo.description}
