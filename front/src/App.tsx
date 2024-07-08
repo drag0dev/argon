@@ -14,8 +14,17 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Amplify } from 'aws-amplify';
+
+const APP_POOL_ID = process.env.APP_POOL_ID;
+const POOL_CLIENT_ID = process.env.POOL_CLIENT_ID;
 
 const App = () => {
+      Amplify.configure({
+          aws_project_region: 'eu-central-1',
+          aws_user_pools_id: APP_POOL_ID,
+          aws_user_pools_web_client_id: POOL_CLIENT_ID,
+      });
   return (
     <Router>
       <div>

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { signIn } from 'aws-amplify/auth';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
-    email: '',
+    username: '',
     password: '',
   });
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -15,6 +18,12 @@ const Login = () => {
     e.preventDefault();
     // Add your API call here to log in the user
     console.log('Login:', credentials);
+    try {
+        await signIn({username: credentials.username, password: credentials.password, options: {authFlowType: 'USER_PASSWORD_AUTH'}})
+        navigate('/')
+    } catch (error) {
+        alert('error logging in:' +  error)
+    }
   };
 
   return (
@@ -24,14 +33,14 @@ const Login = () => {
         <h2 className="title is-4">Login</h2>
 
         <div className="field">
-          <label className="label" htmlFor="email">Email</label>
+          <label className="label" htmlFor="email">Username</label>
           <div className="control">
             <input
               className="input"
-              type="email"
-              id="email"
-              name="email"
-              value={credentials.email}
+              type="username"
+              id="username"
+              name="username"
+              value={credentials.username}
               onChange={handleInputChange}
               required
             />

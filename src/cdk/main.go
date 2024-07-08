@@ -1,8 +1,8 @@
 package main
 
 import (
+	"common"
 	"os"
-    "common"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
@@ -13,11 +13,12 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/constructs-go/constructs/v10"
-     "github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/jsii-runtime-go"
 )
 
@@ -88,6 +89,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		SelfSignUpEnabled: jsii.Bool(true),
 		SignInAliases: &awscognito.SignInAliases{
 			Email: jsii.Bool(true),
+			Username: jsii.Bool(true),
 		},
 		PasswordPolicy: &awscognito.PasswordPolicy{
 			MinLength:        jsii.Number(8),
@@ -102,7 +104,29 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 				Mutable:  jsii.Bool(false),
 			},
 		},
+    AutoVerify: &awscognito.AutoVerifiedAttrs{
+        Email: jsii.Bool(true),
+    },
+    UserVerification: &awscognito.UserVerificationConfig{
+        EmailStyle: awscognito.VerificationEmailStyle_LINK,
+    },
+    CustomAttributes: &map[string]awscognito.ICustomAttribute{
+        "firstName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+        "lastName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+        "dateOfBirth": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+    },
 	})
+    userPool.AddDomain(aws.String("Verification Domain"), &awscognito.UserPoolDomainOptions{
+        CognitoDomain: &awscognito.CognitoDomainOptions{
+            DomainPrefix: aws.String("argon-verification-domain"),
+        },
+    })
 	awscdk.NewCfnOutput(stack, jsii.String("Argon User Pool"), &awscdk.CfnOutputProps{
 		Value:       userPool.UserPoolId(),
 		Description: jsii.String("Argon User Pool"),
@@ -112,6 +136,10 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	userPoolClient := awscognito.NewUserPoolClient(stack, jsii.String("ArgonFrontend"), &awscognito.UserPoolClientProps{
 		UserPool:       userPool,
 		GenerateSecret: jsii.Bool(false),
+    AuthFlows: &awscognito.AuthFlow{
+        UserSrp: jsii.Bool(true),
+        UserPassword: jsii.Bool(true),
+    },
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("Argon Frontend"), &awscdk.CfnOutputProps{
 		Value:       userPoolClient.UserPoolClientId(),
@@ -119,6 +147,11 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	})
 
 
+
+    userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
+        CognitoUserPools: &[]awscognito.IUserPool{userPool},
+        IdentitySource: jsii.String("method.request.header.Authorization"),
+    })
 
 	// Video bucket
 	videoBucket := awss3.NewBucket(stack, jsii.String("argon-videos-bucket"), &awss3.BucketProps{
@@ -440,8 +473,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	})
 	movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
 		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
