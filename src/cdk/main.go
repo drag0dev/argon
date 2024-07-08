@@ -224,16 +224,6 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		IdentitySource:   jsii.String("method.request.header.Authorization"),
 	})
 
-	adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
-		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-		Handler: jsii.String("main"),
-		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
-		Environment: &map[string]*string{
-			"COGNITO_USER_POOL_ID": userPool.UserPoolId(),
-		},
-	})
-	userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
-
 	adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
 		Handler: adminAuthorizerLambda,
 	})
@@ -602,6 +592,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	movieTable.GrantReadData(reviewLambda)
 	showTable.GrantReadData(reviewLambda)
 	reviewTable.GrantWriteData(reviewLambda)
+    preferenceUpdateQueue.GrantSendMessages(queueReviewLambda)
 
 	// Edit metadata Lambdas
 	queueEditMetadataLambda := awslambda.NewFunction(
