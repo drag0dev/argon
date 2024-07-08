@@ -119,3 +119,17 @@ func (subscription *Subscription) IsValid() bool {
 
 	return true
 }
+
+func (review *Review) IsValid() bool {
+	if len(review.UserUUID) == 0 {
+		return false
+	}
+	if len(review.TargetUUID) == 0 {
+		return false
+	}
+	if review.Grade < 1 || review.Grade > 5 {
+		return false
+	}
+
+	return true
+}

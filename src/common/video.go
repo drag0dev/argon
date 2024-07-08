@@ -85,15 +85,28 @@ type Subscription struct {
 	UserUUIDType string `dynamodbav:"userIdType"`
 }
 
+// Review NOTE: UUID is primary key, generated using google/uuid
+type Review struct {
+	// google/uuid
+	UUID     string `dynamodbav:"id" json:"id"`
+	UserUUID string `dynamodbav:"userId" json:"userId"`
+	// The movie/show the user is reviewing
+	TargetUUID string `dynamodbav:"targetId" json:"targetId"`
+	Grade      uint8  `dynamodbav:"grade" json:"grade"`
+	Comment    string `dynamodbav:"comment" json:"comment"`
+}
+
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
 const SubscriptionTableName = "subscription"
+const ReviewTableName = "review"
 
 const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
+const ReviewQueueName = "review-queue"
 
 // email consts
 var SenderEmail = "senderargon@gmail.com"

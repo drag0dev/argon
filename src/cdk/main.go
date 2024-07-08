@@ -255,6 +255,23 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Description: jsii.String("subscription-table"),
 	})
 
+	// Review table
+	reviewTable := awsdynamodb.NewTable(stack, jsii.String("review-table"), &awsdynamodb.TableProps{
+		TableName: jsii.String("review"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("id"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("review table"), &awscdk.CfnOutputProps{
+		Value:       reviewTable.TableName(),
+		Description: jsii.String("review-table"),
+	})
+
 	// subscription queue
 	subscriptionQueue := awssqs.NewQueue(stack, jsii.String("SubscriptionQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("subscription-queue"),
@@ -335,7 +352,12 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	unsubscriptionQueue := awssqs.NewQueue(stack, jsii.String("UnsubscriptionQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("unsubscription-queue"),
 	})
-
+  
+  // review queue
+	reviewQueue := awssqs.NewQueue(stack, jsii.String("ReviewQueue"), &awssqs.QueueProps{
+		QueueName: jsii.String("review-queue"),
+	})
+  
 	// Movie Lambdas
 	getMovieLambda := awslambda.NewFunction(stack, jsii.String("GetMovie"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
@@ -458,6 +480,37 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	subscriptionTable.GrantWriteData(unsubscribeLambda)
 	subscriptionTable.GrantReadWriteData(subscribeLambda)
 
+	// Review Lambdas
+	queueReviewLambda := awslambda.NewFunction(stack, jsii.String("QueueReview"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code: awslambda.Code_FromAsset(
+			jsii.String("../lambda-queue-review/function.zip"),
+			&awss3assets.AssetOptions{},
+		),
+	})
+	reviewLambda := awslambda.NewFunction(stack, jsii.String("Review"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code: awslambda.Code_FromAsset(
+			jsii.String("../lambda-review/function.zip"),
+			&awss3assets.AssetOptions{},
+		),
+	})
+	reviewQueue.GrantSendMessages(queueReviewLambda)
+	reviewLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
+		reviewQueue,
+		&awslambdaeventsources.SqsEventSourceProps{
+			BatchSize: jsii.Number(1),
+		},
+	))
+	reviewQueue.GrantConsumeMessages(reviewLambda)
+	movieTable.GrantReadData(queueReviewLambda)
+	showTable.GrantReadData(queueReviewLambda)
+	movieTable.GrantReadData(reviewLambda)
+	showTable.GrantReadData(reviewLambda)
+	reviewTable.GrantWriteData(reviewLambda)
+
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.String("ArgonAPI"),
@@ -566,6 +619,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		&awsapigateway.MethodOptions{
 		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
     Authorizer: userPoolAuthorizer,
+			MethodResponses: generateMethodResponses(),
+		},
+	)
+
+	// API gateway review resource
+	reviewApiResource := api.Root().AddResource(jsii.String("review"), nil)
+	reviewApiResource.AddCorsPreflight(&awsapigateway.CorsOptions{
+		AllowOrigins: awsapigateway.Cors_ALL_ORIGINS(),
+		AllowMethods: jsii.Strings("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+		AllowHeaders: jsii.Strings(
+			"Content-Type",
+			"X-Amz-Date",
+			"Authorization",
+			"X-Api-Key",
+			"X-Amz-Security-Token",
+		),
+	})
+	reviewApiResource.AddMethod(
+		jsii.String("POST"),
+		awsapigateway.NewLambdaIntegration(queueReviewLambda, generateLambdaIntegrationOptions()),
+		&awsapigateway.MethodOptions{
+			// TODO: enable when frontend is done
+			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			// Authorizer:        authorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)
