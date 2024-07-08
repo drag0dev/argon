@@ -4,19 +4,73 @@ import (
 	"common"
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"strings"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"log"
-	"net/http"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 var dynamoDbClient *dynamodb.Client
 var sqsClient *sqs.Client
+var preferenceChangeQueueClient *sqs.Client
+
+func enqueChangePreferenceItem(prefChangeItem common.PreferenceChange, headerVal string) {
+    token := strings.TrimPrefix(headerVal, "Bearer ")
+    if (token == "") {
+        log.Printf("Missing token")
+        return
+    }
+
+    parsedToken, err := jwt.Parse([]byte(token))
+    if (err != nil) {
+        log.Printf("Error parsing token: %v", err)
+        return
+    }
+
+    sub, ok := parsedToken.Get("sub")
+    if !ok {
+        log.Println("sub claim not found in token")
+        return
+    }
+
+    userId, ok := sub.(string)
+    if !ok {
+        log.Println("userid is not string")
+        return
+    }
+    prefChangeItem.UserId = userId
+
+    prefChangeMarshaled, err := json.Marshal(prefChangeItem)
+    if (err != nil ) {
+        log.Printf("Error marshaling preference change item: %v", err)
+        return
+    }
+
+    queueUrl, err := preferenceChangeQueueClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
+        QueueName: aws.String(common.PreferenceUpdateQueue),
+    })
+    if err != nil {
+        log.Printf("Error getting queue url: %v", err)
+        return
+    }
+
+    sendInput := &sqs.SendMessageInput{
+        MessageBody: aws.String(string(prefChangeMarshaled)),
+        QueueUrl:    queueUrl.QueueUrl,
+    }
+    _, err = preferenceChangeQueueClient.SendMessage(context.TODO(), sendInput)
+    if err != nil { log.Printf("Error enquing preference change item: %v", err) }
+}
 
 func queueReview(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var review common.Review
@@ -27,6 +81,10 @@ func queueReview(ctx context.Context, request events.APIGatewayProxyRequest) (ev
 	if !review.IsValid() {
 		return common.ErrorResponse(http.StatusBadRequest, "Malformed input."), nil
 	}
+
+    actors := []string{}
+    directors := []string{}
+    genres := []string{}
 
 	movieTableName := common.MovieTableName
 	getMovieResult, err := dynamoDbClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -50,7 +108,48 @@ func queueReview(ctx context.Context, request events.APIGatewayProxyRequest) (ev
 		if getShowResult.Item == nil {
 			return common.ErrorResponse(http.StatusNotFound, "Review target not found."), nil
 		}
-	}
+        var show common.Show
+        err = attributevalue.UnmarshalMap(getShowResult.Item, &show)
+        if err != nil {
+            log.Printf("Error unmarshaling movie :%v", err)
+            return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling movie")
+        }
+        actors = show.Actors
+        directors = show.Directors
+        genres = show.Genres
+    } else {
+        // we have a movie
+        var movie common.Movie
+        err = attributevalue.UnmarshalMap(getMovieResult.Item, &movie)
+        if err != nil {
+            log.Printf("Error unmarshaling movie :%v", err)
+            return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error umarshaling movie")
+        }
+        actors = movie.Actors
+        directors = movie.Directors
+        genres = movie.Genres
+    }
+
+    changeWeight := 0
+    if (review.Grade == 1) {
+        changeWeight = common.ReviewChangeWeight1
+    } else if (review.Grade == 2) {
+        changeWeight = common.ReviewChangeWeight2
+    } else if (review.Grade == 3) {
+        changeWeight = common.ReviewChangeWeight3
+    } else if (review.Grade == 4) {
+        changeWeight = common.ReviewChangeWeight4
+    } else if (review.Grade == 5) {
+        changeWeight = common.ReviewChangeWeight5
+    }
+    prefChangeItem := common.PreferenceChange{
+        UpdateWeight: common.ReviewUpdateWeight,
+        ChangeWeight: float64(changeWeight),
+        Actors: actors,
+        Directors: directors,
+        Genres: genres,
+    }
+    enqueChangePreferenceItem(prefChangeItem, request.Headers["Authorization"])
 
 	message, err := json.Marshal(review)
 	if err != nil {
@@ -93,6 +192,6 @@ func main() {
 
 	dynamoDbClient = dynamodb.NewFromConfig(sdkConfig)
 	sqsClient = sqs.NewFromConfig(sdkConfig)
-
+    preferenceChangeQueueClient = sqs.NewFromConfig(sdkConfig)
 	lambda.Start(queueReview)
 }
