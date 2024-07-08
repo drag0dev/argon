@@ -5,62 +5,12 @@ import { useEffect } from 'react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { fetchAuthSession } from 'aws-amplify/auth';
+
 const API_URL = process.env.API_URL;
 
-const dummyDetails = {
-  id: 1,
-  title: 'placeholder data ? (stuff didnt load)',
-  genres: ['Drama', 'Fantasy', 'Horror'],
-  actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
-  directors: ['The Duffer Brothers'],
-  seasons: [
-    {
-      seasonNumber: 1,
-      episodes: [
-        {
-          episodeNumber: 1,
-          title: 'The Vanishing of Will Byers',
-          description:
-            'A young boy disappears, leading to an investigation involving supernatural forces.',
-          actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
-          directors: ['The Duffer Brothers'],
-        },
-        {
-          episodeNumber: 2,
-          title: 'The Weirdo on Maple Street',
-          description:
-            "A girl with a shaved head and strange powers appears, providing a clue to Will's disappearance.",
-          actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
-          directors: ['The Duffer Brothers'],
-        },
-      ],
-    },
-    {
-      seasonNumber: 2,
-      episodes: [
-        {
-          episodeNumber: 1,
-          title: 'MADMAX',
-          description:
-            'The boys encounter a new girl at school while supernatural events continue to plague the town.',
-          actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
-          directors: ['The Duffer Brothers'],
-        },
-        {
-          episodeNumber: 2,
-          title: 'Trick or Treat, Freak',
-          description:
-            'Will struggles to adjust to life after the Upside Down as Halloween approaches.',
-          actors: ['Winona Ryder', 'David Harbour', 'Finn Wolfhard'],
-          directors: ['The Duffer Brothers'],
-        },
-      ],
-    },
-  ],
-};
-
 const TVShowDetails = () => {
-  const [tvShow, setTVShow] = React.useState(dummyDetails);
+  const [tvShow, setTVShow] = React.useState(null);
   const { uuid } = useParams();
 
   useEffect(() => {
@@ -69,8 +19,17 @@ const TVShowDetails = () => {
 
   const fetchTVShowDetails = async (uuid: string) => {
     try {
+      const session = await fetchAuthSession();
+      let token = session.tokens?.idToken!.toString();
+
       const url = `${API_URL}/tvShow?uuid=${uuid}&resolution=1920:1080&season=1&episode=1`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch TV show details');
@@ -83,14 +42,57 @@ const TVShowDetails = () => {
     }
   };
 
-  const handleSubscribe = (type, item) => {
-    console.log(`Subscribed to ${type}: ${item}`);
-    // Subscription logic here
+  const SubscriptionType = {
+    Actor: 0,
+    Director: 1,
+    Genre: 2,
+  };
+
+  const handleSubscribe = async (type, item) => {
+    try {
+      const { tokens, identityId } = await fetchAuthSession();
+      const userId = tokens.idToken.payload.sub; // 'sub' claim contains the user's UUID
+      console.log(`Subscribed to ${type}: ${item} by user ${userId}`);
+
+      const subscriptionData = {
+        UserID: userId,
+        Type: SubscriptionType[type],
+        Target: item,
+      };
+
+      const response = await fetch(`${API_URL}/subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.idToken.toString()}`,
+        },
+        body: JSON.stringify(subscriptionData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const responseData = await response.json();
+      console.log('Subscription successful:', responseData);
+      return responseData;
+    } catch (error) {
+      console.error('Failed to subscribe:', error);
+      throw error;
+    }
   };
 
   return (
     <section className="section">
       <div className="container">
+        { !tvShow && (
+          <div className="notification is-info">
+            Loading TV show details...
+          </div>
+        )}
+
+        { tvShow && (
+        <div>
         <h1 className="title">{tvShow.title}</h1>
         <div>
           <strong>Genres:</strong>
@@ -150,6 +152,8 @@ const TVShowDetails = () => {
             showId={tvShow.id}
           />
         ))}
+        </div>
+        )}
       </div>
     </section>
   );

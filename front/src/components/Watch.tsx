@@ -8,6 +8,7 @@ const API_URL = process.env.API_URL;
 
 const Watch = () => {
   const [videoInfo, setVideoInfo] = useState(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { uuid, seasonId, episodeId } = useParams();
@@ -21,8 +22,8 @@ const Watch = () => {
     setError(null);
 
     try {
-        const session = await fetchAuthSession();
-        let token  = session.tokens?.idToken!.toString()
+      const session = await fetchAuthSession();
+      let token = session.tokens?.idToken!.toString();
 
       let url: string;
       if (seasonId && episodeId) {
@@ -34,9 +35,9 @@ const Watch = () => {
       }
 
       const response = await fetch(url, {
-          headers: {
-              'Authorization': `Bearer ${token}`
-          }
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (!response.ok) {
         throw new Error('Failed to fetch video details');
@@ -45,12 +46,18 @@ const Watch = () => {
       const data = await response.json();
 
       if (seasonId && episodeId) {
-        const season = data.show.seasons.find((season) => season.seasonNumber === +seasonId);
-        const episode = season.episodes.find((episode) => episode.episodeNumber === +episodeId);
+        const season = data.show.seasons.find(
+          (season) => season.seasonNumber === +seasonId,
+        );
+        const episode = season.episodes.find(
+          (episode) => episode.episodeNumber === +episodeId,
+        );
 
         setVideoInfo(episode);
+        setVideoUrl(data.url);
       } else {
         setVideoInfo(data.movie);
+        setVideoUrl(data.url);
       }
     } catch (error) {
       console.error('Error fetching video details:', error);
@@ -60,9 +67,44 @@ const Watch = () => {
     }
   };
 
-  const handleSubscribe = (itemType, itemName) => {
-    console.log(`Subscribed to ${itemType}: ${itemName}`);
-    // Implement subscription logic here
+  const SubscriptionType = {
+    Actor: 0,
+    Director: 1,
+    Genre: 2,
+  };
+
+  const handleSubscribe = async (type, item) => {
+    try {
+      const { tokens, identityId } = await fetchAuthSession();
+      const userId = tokens.idToken.payload.sub; // 'sub' claim contains the user's UUID
+      console.log(`Subscribed to ${type}: ${item} by user ${userId}`);
+
+      const subscriptionData = {
+        UserID: userId,
+        Type: SubscriptionType[type],
+        Target: item,
+      };
+
+      const response = await fetch(`${API_URL}/subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.idToken.toString()}`,
+        },
+        body: JSON.stringify(subscriptionData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const responseData = await response.json();
+      console.log('Subscription successful:', responseData);
+      return responseData;
+    } catch (error) {
+      console.error('Failed to subscribe:', error);
+      throw error;
+    }
   };
 
   if (isLoading) {
@@ -89,29 +131,38 @@ const Watch = () => {
           Season {seasonId}, Episode {episodeId}
         </h3>
       )}
-      <ReactPlayer url={videoInfo.url} controls={true} className="mb-4" />
+      <ReactPlayer url={videoUrl} controls={true} className="mb-4" />
+      {videoUrl && (
+        <a
+          href={videoUrl}
+          className="button is-link"
+          download={`${videoInfo.title.replace(/\s/g, '_')}.mp4`} // replace spaces with underscores and add file extension
+        >
+          Download Video
+        </a>
+      )}
       <div className="content">
         <p>
           <strong>Description:</strong> {videoInfo.description}
         </p>
         {!seasonId && !episodeId && (
-        <div>
-          <strong>Genres:</strong>
-          <ul>
-            {videoInfo.genres.map((genre) => (
-              <li key={genre}>
-                {genre}{' '}
-                <button
-                  type="button"
-                  className="button is-small is-info"
-                  onClick={() => handleSubscribe('Genre', genre)}
-                >
-                  Subscribe
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div>
+            <strong>Genres:</strong>
+            <ul>
+              {videoInfo.genres.map((genre) => (
+                <li key={genre}>
+                  {genre}{' '}
+                  <button
+                    type="button"
+                    className="button is-small is-info"
+                    onClick={() => handleSubscribe('Genre', genre)}
+                  >
+                    Subscribe
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <div>
           <strong>Actors:</strong>

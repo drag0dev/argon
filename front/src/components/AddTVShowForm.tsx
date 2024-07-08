@@ -3,6 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
 
+import { fetchAuthSession } from 'aws-amplify/auth';
+
 const API_URL = process.env.API_URL;
 
 const dummyTVShows = [

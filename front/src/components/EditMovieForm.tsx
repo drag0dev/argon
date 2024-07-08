@@ -5,7 +5,6 @@ import VideoUpload from './VideoUpload';
 
 const API_URL = process.env.API_URL;
 
-
 interface VideoMetadata {
   type: string;
   size: number;
@@ -68,21 +67,40 @@ const EditMovieForm = ({ movie: initialMovie, setEditingMovie }) => {
     setIsLoading(true);
 
     try {
-      const movieData = { ...movie }; // Prepare movie data
-      const url = `${API_URL}/api/movies/${movie.id}`; // Adjust URL for update
-
-      // PUT request to update the movie
-      const response = await fetch(url, {
+      // PUT request to update the metadata ?
+      const response = await fetch(`${API_URL}/movie`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(movieData),
+        body: JSON.stringify({
+          uuid: movie.id,
+          fileType: movie.video.fileType,
+          fileSize: movie.video.fileSize,
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update movie');
       }
+
+      const data = await response.json();
+
+      const uploadResponse = await fetch(data.url, {
+        method: data.method,
+        body: movie.video.file,
+        headers: {
+          'Content-Type': movie.video.fileType,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload video file');
+      }
+
+      console.log('Video uploaded successfully.');
+
+      // TODO: send separate request for movie details
 
       alert('Movie updated successfully!');
       setEditingMovie(null); // Close the form upon success
@@ -184,7 +202,11 @@ const EditMovieForm = ({ movie: initialMovie, setEditingMovie }) => {
 
         <div className="field">
           <div className="control">
-            <button type="submit" className="button is-primary" disabled={isLoading}>
+            <button
+              type="submit"
+              className="button is-primary"
+              disabled={isLoading}
+            >
               <span className="icon">
                 <FontAwesomeIcon icon={faEdit} />
               </span>
