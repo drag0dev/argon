@@ -132,6 +132,15 @@ const Watch = () => {
         </h3>
       )}
       <ReactPlayer url={videoUrl} controls={true} className="mb-4" />
+      {videoUrl && (
+        <a
+          href={videoUrl}
+          className="button is-link"
+          download={`${videoInfo.title.replace(/\s/g, '_')}.mp4`} // replace spaces with underscores and add file extension
+        >
+          Download Video
+        </a>
+      )}
       <div className="content">
         <p>
           <strong>Description:</strong> {videoInfo.description}
