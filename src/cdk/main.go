@@ -164,7 +164,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
             "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
         },
     })
-    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:ListGroupsForUser"))
+    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
 
     adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
         Handler: adminAuthorizerLambda,
