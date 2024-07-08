@@ -67,8 +67,15 @@ func generateMethodResponses() *[]*awsapigateway.MethodResponse {
 func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackProps) awscdk.Stack {
 	stack := awscdk.NewStack(scope, &id, props)
 
+    preferenceUpdateQueue := awssqs.NewQueue(stack, jsii.String("PreferenceUpdateQueue"), &awssqs.QueueProps{
+        QueueName: jsii.String(common.PreferenceUpdateQueue),
+        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+    })
 
-
+    updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
+        QueueName: jsii.String(common.UpdateFeedQueue),
+        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+    })
 
     // publishing topic
     publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
