@@ -14,8 +14,17 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Amplify } from 'aws-amplify';
+
+const APP_POOL_ID = process.env.APP_POOL_ID;
+const POOL_CLIENT_ID = process.env.POOL_CLIENT_ID;
 
 const App = () => {
+      Amplify.configure({
+          aws_project_region: 'eu-central-1',
+          aws_user_pools_id: APP_POOL_ID,
+          aws_user_pools_web_client_id: POOL_CLIENT_ID,
+      });
   return (
     <Router>
       <div>
@@ -34,9 +43,9 @@ const App = () => {
           <Route path="/movie/edit" element={<EditOrDeleteMoviePage />} />
           <Route path="/tvshow/delete" element={<EditOrDeleteTVShowPage />} />
           <Route path="/tvshow/edit" element={<EditOrDeleteTVShowPage />} />
-          <Route path="/movie/:id/details" element={<WatchPage />} />
-          <Route path="/tvshow/:id/details" element={<TVShowDetails />} />
-          <Route path="/tvshow/:id/watch/:seasonId/:episodeId" element={<WatchPage />} />
+          <Route path="/movie/:uuid/details" element={<WatchPage />} />
+          <Route path="/tvshow/:uuid/details" element={<TVShowDetails />} />
+          <Route path="/tvshow/:uuid/watch/:seasonId/:episodeId" element={<WatchPage />} />
         </Routes>
       </div>
     </Router>

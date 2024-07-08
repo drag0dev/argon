@@ -132,7 +132,7 @@ func updateShow(ctx context.Context, incomingRequest events.APIGatewayProxyReque
     video.LastChangeTimestamp = time.Now().Unix()
     video.FileName = fileName
 
-    fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
+    fileName = fmt.Sprintf("%s%s%s", fileName, common.UpdateSuffix, common.OriginalSuffix)
 
     marshaledSeasons, err := attributevalue.MarshalList(show.Seasons)
     if err != nil {

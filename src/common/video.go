@@ -85,6 +85,17 @@ type Subscription struct {
 	UserUUIDType string `dynamodbav:"userIdType"`
 }
 
+// Review NOTE: UUID is primary key, generated using google/uuid
+type Review struct {
+	// google/uuid
+	UUID     string `dynamodbav:"id" json:"id"`
+	UserUUID string `dynamodbav:"userId" json:"userId"`
+	// The movie/show the user is reviewing
+	TargetUUID string `dynamodbav:"targetId" json:"targetId"`
+	Grade      uint8  `dynamodbav:"grade" json:"grade"`
+	Comment    string `dynamodbav:"comment" json:"comment"`
+}
+
 type EditMetadataRequest struct {
 	// The thing whose metadata is being edited
 	TargetUUID    string   `json:"targetId"`
@@ -101,14 +112,25 @@ const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
 const SubscriptionTableName = "subscription"
+const ReviewTableName = "review"
 
 const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
+const ReviewQueueName = "review-queue"
 const EditMetadataRequestQueueName = "edit-metadata-request-queue"
+
+// email consts
+var SenderEmail = "senderargon@gmail.com"
+var ReceiverEmail1 = "receiverargon1@gmail.com"
+var ReceiverEmail2 = "receiverargon2@gmail.com"
 
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"
 const Resolution3 = "800:600"
 const OriginalSuffix = "_original"
+const UpdateSuffix = "_update"
+
+// auth
+const AdminGroupName = "argon-admin-group"

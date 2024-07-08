@@ -69,7 +69,15 @@ func queueUnsubscription(
 		return common.ErrorResponse(http.StatusInternalServerError, "Error sending message to queue."), err
 	}
 
-	return events.APIGatewayProxyResponse{StatusCode: http.StatusOK}, nil
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Headers: map[string]string{
+			"Access-Control-Allow-Origin":      "*",
+			"Access-Control-Allow-Credentials": "true",
+			"Access-Control-Allow-Methods":     "GET, POST, PUT, DELETE, OPTIONS",
+			"Access-Control-Allow-Headers":     "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+		},
+	}, nil
 }
 
 func main() {

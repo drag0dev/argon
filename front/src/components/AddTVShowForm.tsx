@@ -3,6 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
 
+import { fetchAuthSession } from 'aws-amplify/auth';
+
 const API_URL = process.env.API_URL;
 
 const dummyTVShows = [
@@ -376,11 +378,14 @@ const AddTVShowForm = () => {
 
       const url = `${API_URL}/tvShow`;
 
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
       // Step 1: Send show metadata and get upload URLs
       const metadataResponse = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(showData),
       });

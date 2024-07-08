@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
 import { useEffect } from 'react';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_URL = process.env.API_URL;
 
@@ -125,12 +126,15 @@ const AddMovieForm = () => {
           lastChangeTimestamp: movie.video.lastChangeTimestamp,
         },
       };
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
 
       // Step 1: Send movie metadata and get upload URL
       const metadataResponse = await fetch(`${API_URL}/movie`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(movieData),
       });

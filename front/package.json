@@ -10,11 +10,13 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.12",
     "@fortawesome/fontawesome-svg-core": "^6.5.2",
     "@fortawesome/free-brands-svg-icons": "^6.5.2",
     "@fortawesome/free-regular-svg-icons": "^6.5.2",
     "@fortawesome/free-solid-svg-icons": "^6.5.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "aws-amplify": "^6.3.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-player": "^2.16.0",
