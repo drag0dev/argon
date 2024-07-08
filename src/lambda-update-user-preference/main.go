@@ -17,9 +17,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 var dynamodbClient *dynamodb.Client
+var updateFeedQueue *sqs.Client
 
 type Wrapper struct {
     Message string `json:"message"`
@@ -169,7 +171,7 @@ func handlePublish(ctx context.Context, sqsEvent events.SQSEvent) error {
         if (!ok) { log.Printf("Missing updated update counter in the updated preference!") }
         updatedCounterCast, ok := updatedCounter.(*types.AttributeValueMemberN)
         if (!ok) { log.Printf("Updated update counter not a number type") }
-        updatedCounterVal, err := strconv.Atoi(updatedCounterCast.Value)
+        updatedCounterVal, err := strconv.ParseFloat(updatedCounterCast.Value, 64)
         if (err != nil) { log.Printf("Updated update counter not a number") }
 
         if (updatedCounterVal > common.UpdateCounterThreshhold) {
@@ -189,6 +191,24 @@ func handlePublish(ctx context.Context, sqsEvent events.SQSEvent) error {
             if err != nil {
                 log.Printf("Error updating update counter: %v", err)
             }
+
+            queueUrl, err := updateFeedQueue.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
+                QueueName: aws.String(common.UpdateFeedQueue),
+            })
+            if err != nil {
+                log.Printf("Error getting queue url: %v", err)
+                return err
+            }
+
+            sendInput := &sqs.SendMessageInput{
+                MessageBody: aws.String(userId),
+                QueueUrl:    queueUrl.QueueUrl,
+            }
+            _, err = updateFeedQueue.SendMessage(context.TODO(), sendInput)
+            if err != nil {
+                log.Printf("Error enquing preference change item: %v", err)
+                return err
+            }
         }
     }
 
@@ -201,5 +221,6 @@ func main() {
         log.Fatal("Cannot load in default config")
     }
     dynamodbClient = dynamodb.NewFromConfig(sdkConfig)
+    updateFeedQueue = sqs.NewFromConfig(sdkConfig)
     lambda.Start(handlePublish)
 }

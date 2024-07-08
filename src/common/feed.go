@@ -14,8 +14,14 @@ type PreferenceChange struct {
 }
 
 type UserPreference struct {
-    Actors map[string]float64
-    Directors map[string]float64
-    Genres map[string]float64
-    UpdateCounter float64
+    Actors map[string]float64       `dynamodbav:"actors" json:"actors"`
+    Directors map[string]float64    `dynamodbav:"directors" json:"directors"`
+    Genres map[string]float64       `dynamodbav:"genres" json:"genres"`
+    UpdateCounter float64           `dynamodbav:"updateCounter" json:"updateCounter"`
+}
+
+type Feed struct {
+    UserId string   `dynamodbav:"userId" json:"userId"`
+    FeedShows []string   `dynamodbav:"feedShows" json:"feedShows"`
+    FeedMovies []string   `dynamodbav:"feedMovies" json:"feedMovies"`
 }

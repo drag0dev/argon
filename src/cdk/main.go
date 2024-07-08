@@ -71,6 +71,10 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         QueueName: jsii.String(common.PreferenceUpdateQueue),
         VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
     })
+    updateFeedQueue := awssqs.NewQueue(stack, jsii.String("UpdateFeedQueue"), &awssqs.QueueProps{
+        QueueName: jsii.String(common.UpdateFeedQueue),
+        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+    })
 
     userPreferenceTable := awsdynamodb.NewTable(stack, jsii.String("user-preference-table"), &awsdynamodb.TableProps{
         TableName: jsii.String(common.UserPreferenceTableName),
@@ -88,6 +92,23 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         Description: jsii.String("user-preference-table"),
     })
 
+    userFeedTable := awsdynamodb.NewTable(stack, jsii.String("user-feed-table"), &awsdynamodb.TableProps{
+        TableName: jsii.String(common.FeedTableName),
+        PartitionKey: &awsdynamodb.Attribute{
+            Name: jsii.String("userId"),
+            Type: awsdynamodb.AttributeType_STRING,
+        },
+        BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+        ReadCapacity:  jsii.Number(1),
+        WriteCapacity: jsii.Number(1),
+        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+    })
+    awscdk.NewCfnOutput(stack, jsii.String("user feed table"), &awscdk.CfnOutputProps{
+        Value:       userFeedTable.TableName(),
+        Description: jsii.String("user-preference-table"),
+    })
+
+
     // update user preference lambda
     updateUserPreferenceLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserPreferenceLambda"), &awslambda.FunctionProps{
         Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
@@ -99,6 +120,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         BatchSize: jsii.Number(10),
     }))
     preferenceUpdateQueue.GrantConsumeMessages(updateUserPreferenceLambda)
+    updateFeedQueue.GrantSendMessages(updateUserPreferenceLambda)
     userPreferenceTable.GrantReadWriteData(updateUserPreferenceLambda)
 
     // updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
@@ -260,6 +282,24 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Value:       showTable.TableName(),
 		Description: jsii.String("show-table"),
 	})
+
+
+    // update user feed lambda
+    updateUserFeedLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserFeedLambda"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-update-user-feed/function.zip"), &awss3assets.AssetOptions{}),
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
+    })
+    updateUserFeedLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(updateFeedQueue, &awslambdaeventsources.SqsEventSourceProps{
+        BatchSize: jsii.Number(10),
+    }))
+    updateFeedQueue.GrantConsumeMessages(updateUserFeedLambda)
+    userFeedTable.GrantReadWriteData(updateUserFeedLambda)
+    userPreferenceTable.GrantReadData(updateUserFeedLambda)
+    movieTable.GrantReadData(updateUserFeedLambda)
+    showTable.GrantReadData(updateUserFeedLambda)
+
 
 	// Subscription table
 	subscriptionTable := awsdynamodb.NewTable(stack, jsii.String("subscription-table"), &awsdynamodb.TableProps{

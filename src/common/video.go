@@ -129,3 +129,4 @@ const ReviewChangeWeight5 = 3
 const ReviewUpdateWeight = 5
 
 const UserPreferenceTableName = "user-preference-table"
+const FeedTableName = "feed-table"
