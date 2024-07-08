@@ -64,9 +64,44 @@ const Watch = () => {
     }
   };
 
-  const handleSubscribe = (itemType, itemName) => {
-    console.log(`Subscribed to ${itemType}: ${itemName}`);
-    // Implement subscription logic here
+  const SubscriptionType = {
+    Actor: 0,
+    Director: 1,
+    Genre: 2,
+  };
+
+  const handleSubscribe = async (type, item) => {
+    try {
+      const { tokens, identityId } = await fetchAuthSession();
+      const userId = tokens.idToken.payload.sub; // 'sub' claim contains the user's UUID
+      console.log(`Subscribed to ${type}: ${item} by user ${userId}`);
+
+      const subscriptionData = {
+        UserID: userId,
+        Type: SubscriptionType[type],
+        Target: item,
+      };
+
+      const response = await fetch(`${API_URL}/subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.idToken.toString()}`,
+        },
+        body: JSON.stringify(subscriptionData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const responseData = await response.json();
+      console.log('Subscription successful:', responseData);
+      return responseData;
+    } catch (error) {
+      console.error('Failed to subscribe:', error);
+      throw error;
+    }
   };
 
   if (isLoading) {
