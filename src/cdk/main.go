@@ -1,8 +1,8 @@
 package main
 
 import (
+	"common"
 	"os"
-    "common"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
@@ -13,11 +13,12 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/constructs-go/constructs/v10"
-     "github.com/aws/aws-cdk-go/awscdk/v2/awsses"
 	"github.com/aws/jsii-runtime-go"
 )
 
@@ -88,6 +89,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		SelfSignUpEnabled: jsii.Bool(true),
 		SignInAliases: &awscognito.SignInAliases{
 			Email: jsii.Bool(true),
+			Username: jsii.Bool(true),
 		},
 		PasswordPolicy: &awscognito.PasswordPolicy{
 			MinLength:        jsii.Number(8),
@@ -102,7 +104,29 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 				Mutable:  jsii.Bool(false),
 			},
 		},
+    AutoVerify: &awscognito.AutoVerifiedAttrs{
+        Email: jsii.Bool(true),
+    },
+    UserVerification: &awscognito.UserVerificationConfig{
+        EmailStyle: awscognito.VerificationEmailStyle_LINK,
+    },
+    CustomAttributes: &map[string]awscognito.ICustomAttribute{
+        "firstName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+        "lastName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+        "dateOfBirth": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+            Mutable: jsii.Bool(true),
+        }),
+    },
 	})
+    userPool.AddDomain(aws.String("Verification Domain"), &awscognito.UserPoolDomainOptions{
+        CognitoDomain: &awscognito.CognitoDomainOptions{
+            DomainPrefix: aws.String("argon-verification-domain"),
+        },
+    })
 	awscdk.NewCfnOutput(stack, jsii.String("Argon User Pool"), &awscdk.CfnOutputProps{
 		Value:       userPool.UserPoolId(),
 		Description: jsii.String("Argon User Pool"),
@@ -112,12 +136,39 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	userPoolClient := awscognito.NewUserPoolClient(stack, jsii.String("ArgonFrontend"), &awscognito.UserPoolClientProps{
 		UserPool:       userPool,
 		GenerateSecret: jsii.Bool(false),
+    AuthFlows: &awscognito.AuthFlow{
+        UserSrp: jsii.Bool(true),
+        UserPassword: jsii.Bool(true),
+    },
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("Argon Frontend"), &awscdk.CfnOutputProps{
 		Value:       userPoolClient.UserPoolClientId(),
 		Description: jsii.String("ArgonFrontend"),
 	})
 
+    _ = awscognito.NewCfnUserPoolGroup(stack, jsii.String("AdminGroup"), &awscognito.CfnUserPoolGroupProps{
+        GroupName: jsii.String(common.AdminGroupName),
+        UserPoolId: userPool.UserPoolId(),
+    })
+
+    userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
+        CognitoUserPools: &[]awscognito.IUserPool{userPool},
+        IdentitySource: jsii.String("method.request.header.Authorization"),
+    })
+
+    adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
+        Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+        Handler: jsii.String("main"),
+        Code: awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
+        Environment: &map[string]*string{
+            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+        },
+    })
+    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:ListGroupsForUser"))
+
+    adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
+        Handler: adminAuthorizerLambda,
+    })
 
 
 	// Video bucket
@@ -439,27 +490,20 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		),
 	})
 	movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -477,27 +521,20 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		),
 	})
 	tvShowApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateShowVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -518,9 +555,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("POST"),
 		awsapigateway.NewLambdaIntegration(queueSubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-			// TODO: enable when frontend is done
-			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-			// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)
@@ -528,9 +564,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("DELETE"),
 		awsapigateway.NewLambdaIntegration(queueUnsubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-			// TODO: enable when frontend is done
-			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-			// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)

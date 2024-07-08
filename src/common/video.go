@@ -105,3 +105,6 @@ const Resolution2 = "1280:720"
 const Resolution3 = "800:600"
 const OriginalSuffix = "_original"
 const UpdateSuffix = "_update"
+
+// auth
+const AdminGroupName = "argon-admin-group"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
 import ReviewSection from '../components/ReviewSection';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_URL = process.env.API_URL;
 
@@ -20,6 +21,9 @@ const Watch = () => {
     setError(null);
 
     try {
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
+
       let url: string;
       if (seasonId && episodeId) {
         // Fetch TV show episode
@@ -29,7 +33,11 @@ const Watch = () => {
         url = `${API_URL}/movie?uuid=${uuid}&resolution=1920:1080`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+          headers: {
+              'Authorization': `Bearer ${token}`
+          }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch video details');
       }
