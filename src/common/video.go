@@ -108,7 +108,16 @@ const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
 const ReviewQueueName = "review-queue"
 
+// email consts
+var SenderEmail = "senderargon@gmail.com"
+var ReceiverEmail1 = "receiverargon1@gmail.com"
+var ReceiverEmail2 = "receiverargon2@gmail.com"
+
 const Resolution1 = "1920:1080"
 const Resolution2 = "1280:720"
 const Resolution3 = "800:600"
 const OriginalSuffix = "_original"
+const UpdateSuffix = "_update"
+
+// auth
+const AdminGroupName = "argon-admin-group"

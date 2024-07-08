@@ -107,7 +107,7 @@ func updateMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequ
     movie.Video.LastChangeTimestamp = timestamp
     movie.Video.FileName = fileName
 
-    fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
+    fileName = fmt.Sprintf("%s%s%s", fileName, common.UpdateSuffix, common.OriginalSuffix)
 
     marshaledVideo, err := attributevalue.MarshalMap(movie.Video)
     if err != nil {

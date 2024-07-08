@@ -16,11 +16,12 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
 
 
@@ -28,6 +29,8 @@ var s3Client *s3.Client
 var uploader *manager.Uploader
 var downloader *manager.Downloader
 var dynamodbClient *dynamodb.Client
+var snsClient *sns.Client
+var publishingTopicARN string
 
 func handler(ctx context.Context, s3Event events.S3Event) error {
     for _, record := range s3Event.Records {
@@ -36,6 +39,11 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
         log.Printf("Processing %s - %s", bucket, key)
 
         videoName, _ := strings.CutSuffix(key, common.OriginalSuffix)
+        update := false
+        if (strings.HasSuffix(videoName, common.UpdateSuffix)) {
+            update = true
+            videoName, _ = strings.CutSuffix(videoName, common.UpdateSuffix)
+        }
 
         inputFile := "/tmp/input_video"
         outputFile := "/tmp/output.mp4"
@@ -82,6 +90,7 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
         // set video to ready
         nameParts := strings.Split(videoName, "-")
         uuid := strings.Join(nameParts[:5], "-")
+        var show *common.Show
         if (len(nameParts)==6) {
             err = updateMovie(uuid)
             if (err != nil) {
@@ -89,10 +98,46 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
                 return errors.New(fmt.Sprintf("Error marking movie video ready: %v\n", err))
             }
         } else {
-            err = updateTvShow(uuid, nameParts[5], nameParts[6])
+            show, err = updateTvShow(uuid, nameParts[5], nameParts[6])
             if (err != nil) {
                 log.Printf("Error marking show video ready: %v\n", err)
                 return errors.New(fmt.Sprintf("Error marking show video ready: %v\n", err))
+            }
+        }
+
+        // only emit publish notification if this is is not an update
+        if (!update) {
+            // emit publish notification
+            var notification string
+            if (len(nameParts) == 6) {
+                notification = "movie~" + uuid
+            } else {
+                // tv shows can be uploaded in bulk therefore we need to wait for all episodes to be uploaded
+                // before emitting a notification
+                notification = "show~" + uuid
+
+                showReadyForPublish := true
+                outer: for _, season := range show.Seasons {
+                    for _, episode := range season.Episodes {
+                        if (!episode.Video.Ready) {
+                            showReadyForPublish = false
+                            break outer
+                        }
+                    }
+                }
+                if (!showReadyForPublish) { continue }
+            }
+
+
+            log.Printf("Emitting to topic: %s\n", publishingTopicARN)
+            _, err = snsClient.Publish(context.TODO(), &sns.PublishInput{
+                Message: aws.String(string(notification)),
+                TopicArn: aws.String(publishingTopicARN),
+            })
+
+            if (err != nil) {
+                log.Printf("Error emitting notification: %v\n", err)
+                return errors.New(fmt.Sprintf("Error emitting notification: %v\n", err))
             }
         }
     }
@@ -129,11 +174,11 @@ func updateMovie(movieUUID string) error {
     return nil
 }
 
-func updateTvShow(showUUID string, seasonStr string, episodeStr string) error {
+func updateTvShow(showUUID string, seasonStr string, episodeStr string) (*common.Show, error) {
     season, err := strconv.Atoi(seasonStr)
-    if (err != nil) { return errors.New(fmt.Sprintf("cant parse season when updating video: %v", err)) }
+    if (err != nil) { return nil, errors.New(fmt.Sprintf("cant parse season when updating video: %v", err)) }
     episode, err := strconv.Atoi(episodeStr)
-    if (err != nil) { return errors.New(fmt.Sprintf("cant parse episode when updating video: %v", err)) }
+    if (err != nil) { return nil, errors.New(fmt.Sprintf("cant parse episode when updating video: %v", err)) }
 
     // get show
     tableName := common.ShowTableName
@@ -147,12 +192,12 @@ func updateTvShow(showUUID string, seasonStr string, episodeStr string) error {
     }
 
     result, err := dynamodbClient.GetItem(context.TODO(), input)
-    if err != nil { return errors.New(fmt.Sprintf("Error getting show: %v", err)) }
-    if result.Item == nil { return errors.New("Show does not exist") }
+    if err != nil { return nil, errors.New(fmt.Sprintf("Error getting show: %v", err)) }
+    if result.Item == nil { return nil, errors.New("Show does not exist") }
 
     var show common.Show
     err = attributevalue.UnmarshalMap(result.Item, &show)
-    if err != nil { return errors.New(fmt.Sprintf("Error unmarshaling show: %v", err)) }
+    if err != nil { return nil, errors.New(fmt.Sprintf("Error unmarshaling show: %v", err)) }
 
     // find actual season and episode index in the item
     seasonActualIndex := -1
@@ -170,6 +215,7 @@ func updateTvShow(showUUID string, seasonStr string, episodeStr string) error {
 
 
     // update the show
+    show.Seasons[seasonActualIndex].Episodes[episodeActualIndex].Video.Ready = true
     key := map[string]types.AttributeValue{
         "id": &types.AttributeValueMemberS{
             Value: showUUID,
@@ -192,9 +238,9 @@ func updateTvShow(showUUID string, seasonStr string, episodeStr string) error {
     }
 
     _, err = dynamodbClient.UpdateItem(context.TODO(), inputUpdate)
-    if err != nil { return errors.New(fmt.Sprintf("Error updating show %s: %v", showUUID, err)) }
+    if err != nil { return nil, errors.New(fmt.Sprintf("Error updating show %s: %v", showUUID, err)) }
 
-    return nil
+    return &show, nil
 }
 
 func downloadFile(ctx context.Context, bucket, key, filepath string) error {
@@ -264,6 +310,9 @@ func main() {
     uploader = manager.NewUploader(s3Client)
     downloader = manager.NewDownloader(s3Client)
     dynamodbClient = dynamodb.NewFromConfig(cfg)
+    snsClient = sns.NewFromConfig(cfg)
+
+    publishingTopicARN = os.Getenv("PUBLISHING_TOPIC_ARN")
 
     lambda.Start(handler)
 }

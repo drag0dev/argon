@@ -22,6 +22,7 @@ import (
 type GetMovieResponse struct {
     Url string               `json:"url"`
     Method string            `json:"method"`
+    Data common.Movie        `json:"movie"`
 }
 
 var s3PresignClient *s3.PresignClient;
@@ -92,6 +93,7 @@ func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest
     res := GetMovieResponse{
         Url: request.URL,
         Method: request.Method,
+        Data: movie,
     }
     resString, err := json.Marshal(res)
     if (err != nil) {

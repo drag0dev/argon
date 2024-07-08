@@ -1,79 +1,131 @@
 import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
+import ReviewSection from '../components/ReviewSection';
+import { fetchAuthSession } from 'aws-amplify/auth';
+
+const API_URL = process.env.API_URL;
 
 const Watch = () => {
   const [videoInfo, setVideoInfo] = useState(null);
-  const { id, seasonId, episodeId } = useParams();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { uuid, seasonId, episodeId } = useParams();
 
   useEffect(() => {
-    fetchVideoDetails(id, seasonId, episodeId);
-  }, [id, seasonId, episodeId]);
+    fetchVideoDetails(uuid, seasonId, episodeId);
+  }, [uuid, seasonId, episodeId]);
 
-  const fetchVideoDetails = async (id, seasonNum, episodeNum) => {
-    let details = {};
-    if (seasonId && episodeId) {
-      // Dummy data for a TV show episode
-      details = {
-        id: id,
-        title: 'Example Show',
-        description: 'Description of a specific episode of a TV show.',
-        type: 'Episode',
-        videoUrl: 'https://www.example.com/episode.mp4',
-        genres: ['Drama'],
-        actors: ['Actor A', 'Actor B'],
-        directors: ['Director X'],
-      };
-    } else {
-      // Data for a movie
-      details = {
-        id: id,
-        title: 'Inception',
-        description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
-        type: 'Movie',
-        videoUrl: 'https://www.youtube.com/watch?v=YoHD9XEInc0',
-        genres: ['Action', 'Adventure', 'Sci-Fi'],
-        actors: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Ellen Page'],
-        directors: ['Christopher Nolan'],
-      };
+  const fetchVideoDetails = async (id, seasonId, episodeId) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
+
+      let url: string;
+      if (seasonId && episodeId) {
+        // Fetch TV show episode
+        url = `${API_URL}/tvShow?uuid=${uuid}&season=${seasonId}&episode=${episodeId}&resolution=1920:1080`;
+      } else {
+        // Fetch movie
+        url = `${API_URL}/movie?uuid=${uuid}&resolution=1920:1080`;
+      }
+
+      const response = await fetch(url, {
+          headers: {
+              'Authorization': `Bearer ${token}`
+          }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch video details');
+      }
+
+      const data = await response.json();
+
+      if (seasonId && episodeId) {
+        const season = data.show.seasons.find((season) => season.seasonNumber === +seasonId);
+        const episode = season.episodes.find((episode) => episode.episodeNumber === +episodeId);
+
+        setVideoInfo(episode);
+      } else {
+        setVideoInfo(data.movie);
+      }
+    } catch (error) {
+      console.error('Error fetching video details:', error);
+      setError('Failed to load video details. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
-    setVideoInfo(details);
   };
 
   const handleSubscribe = (itemType, itemName) => {
     console.log(`Subscribed to ${itemType}: ${itemName}`);
+    // Implement subscription logic here
   };
 
-  if (!videoInfo) {
+  if (isLoading) {
     return <div className="notification is-info">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="notification is-danger">{error}</div>;
+  }
+
+  if (!videoInfo) {
+    return (
+      <div className="notification is-warning">
+        No video information available.
+      </div>
+    );
   }
 
   return (
     <div className="container mt-5">
       <h1 className="title">{videoInfo.title}</h1>
       {seasonId && episodeId && (
-        <h3 className="subtitle">Season {seasonId}, Episode {episodeId}</h3>
+        <h3 className="subtitle">
+          Season {seasonId}, Episode {episodeId}
+        </h3>
       )}
-      <ReactPlayer url={videoInfo.videoUrl} controls={true} className="mb-4" />
+      <ReactPlayer url={videoInfo.url} controls={true} className="mb-4" />
       <div className="content">
-        <p><strong>Type:</strong> {videoInfo.type}</p>
-        <p><strong>Description:</strong> {videoInfo.description}</p>
+        <p>
+          <strong>Description:</strong> {videoInfo.description}
+        </p>
+        {!seasonId && !episodeId && (
         <div>
           <strong>Genres:</strong>
           <ul>
-            {videoInfo.genres.map(genre => (
+            {videoInfo.genres.map((genre) => (
               <li key={genre}>
-                {genre} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Genre', genre)}>Subscribe</button>
+                {genre}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Genre', genre)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
         </div>
+        )}
         <div>
           <strong>Actors:</strong>
           <ul>
-            {videoInfo.actors.map(actor => (
+            {videoInfo.actors.map((actor) => (
               <li key={actor}>
-                {actor} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Actor', actor)}>Subscribe</button>
+                {actor}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Actor', actor)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
@@ -81,14 +133,22 @@ const Watch = () => {
         <div>
           <strong>Directors:</strong>
           <ul>
-            {videoInfo.directors.map(director => (
+            {videoInfo.directors.map((director) => (
               <li key={director}>
-                {director} <button type="button" className="button is-small is-info" onClick={() => handleSubscribe('Director', director)}>Subscribe</button>
+                {director}{' '}
+                <button
+                  type="button"
+                  className="button is-small is-info"
+                  onClick={() => handleSubscribe('Director', director)}
+                >
+                  Subscribe
+                </button>
               </li>
             ))}
           </ul>
         </div>
       </div>
+      <ReviewSection targetUUID={uuid} />
     </div>
   );
 };

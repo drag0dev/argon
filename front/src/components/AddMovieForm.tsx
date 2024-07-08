@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
+import { useEffect } from 'react';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_URL = process.env.API_URL;
 
@@ -16,6 +18,68 @@ const AddMovieForm = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Function to insert dummy data
+  const insertDummyData = (n) => {
+    const dummyMovies = [
+      {
+        id: 1,
+        title: 'Inception',
+        description:
+          'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
+        genres: ['Action', 'Adventure', 'Sci-Fi'],
+        actors: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Ellen Page'],
+        directors: ['Christopher Nolan'],
+      },
+      {
+        id: 2,
+        title: 'Interstellar',
+        description:
+          "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+        genres: ['Adventure', 'Drama', 'Sci-Fi'],
+        actors: ['Matthew McConaughey', 'Anne Hathaway', 'Jessica Chastain'],
+        directors: ['Christopher Nolan'],
+      },
+      {
+        id: 3,
+        title: 'The Dark Knight',
+        description:
+          'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.',
+        genres: ['Action', 'Crime', 'Drama'],
+        actors: ['Christian Bale', 'Heath Ledger', 'Aaron Eckhart'],
+        directors: ['Christopher Nolan'],
+      },
+      {
+        id: 4,
+        title: 'Unexpected Aquatic Humor',
+        description:
+          'A lighthearted video featuring two different fish, each representing their country in a humorous manner. The first clip showcases a Serbian fish lying on the ground, humorously critiqued for its quality. The second clip features a Bosnian fish "smoking" a cigarette, praised for its swagger.',
+        genres: ['Comedy', 'Short', 'Meme'],
+        actors: ['Serbian Fish', 'Bosnian Fish'],
+        directors: ['Internet Meme Creator'],
+      },
+    ];
+
+    // Example of using the first dummy movie
+    const selectedMovie = dummyMovies[n];
+    setMovie({
+      ...movie,
+      title: selectedMovie.title,
+      description: selectedMovie.description,
+      genres: selectedMovie.genres,
+      actors: selectedMovie.actors,
+      directors: selectedMovie.directors,
+      video: null,
+    });
+  };
+
+  // Expose the function to the window object
+  useEffect(() => {
+    window.insertDummyData = insertDummyData;
+    return () => {
+      window.insertDummyData = undefined;
+    };
+  }, []); // Now tracking 'movie' as well, which might be overkill
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -36,7 +100,7 @@ const AddMovieForm = () => {
       video: {
         file,
         fileType: metadata.type,
-        fileSize: metadata.size,
+        fileSize: +metadata.size, // this should be illegal
         creationTimestamp: metadata.lastModified.getTime(),
         lastChangeTimestamp: Date.now(),
       },
@@ -62,14 +126,15 @@ const AddMovieForm = () => {
           lastChangeTimestamp: movie.video.lastChangeTimestamp,
         },
       };
-
-      const url = `${API_URL}/api/movies`;
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
 
       // Step 1: Send movie metadata and get upload URL
-      const metadataResponse = await fetch(url, {
+      const metadataResponse = await fetch(`${API_URL}/movie`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(movieData),
       });
@@ -78,13 +143,16 @@ const AddMovieForm = () => {
         throw new Error('Failed to submit movie metadata');
       }
 
-      console.log(await metadataResponse.json());
+      console.log('Movie metadata submitted successfully');
 
-      const { uploadUrl, movieId } = await metadataResponse.json();
+      const { url, method } = await metadataResponse.json();
+
+      console.log('Received upload URL:', url);
+      console.log('Received upload method:', method);
 
       // Step 2: Upload the video file directly
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
+      const uploadResponse = await fetch(url, {
+        method: method,
         body: movie.video.file,
         headers: {
           'Content-Type': movie.video.fileType,
@@ -95,7 +163,7 @@ const AddMovieForm = () => {
         throw new Error('Failed to upload video file');
       }
 
-      console.log('Movie and video uploaded successfully. Movie ID:', movieId);
+      console.log('Movie and video uploaded successfully.');
 
       // Clear the form
       setMovie({
