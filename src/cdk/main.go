@@ -72,6 +72,35 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
     })
 
+    userPreferenceTable := awsdynamodb.NewTable(stack, jsii.String("user-preference-table"), &awsdynamodb.TableProps{
+        TableName: jsii.String(common.UserPreferenceTableName),
+        PartitionKey: &awsdynamodb.Attribute{
+            Name: jsii.String("userId"),
+            Type: awsdynamodb.AttributeType_STRING,
+        },
+        BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+        ReadCapacity:  jsii.Number(1),
+        WriteCapacity: jsii.Number(1),
+        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+    })
+    awscdk.NewCfnOutput(stack, jsii.String("user preference table"), &awscdk.CfnOutputProps{
+        Value:       userPreferenceTable.TableName(),
+        Description: jsii.String("user-preference-table"),
+    })
+
+    // update user preference lambda
+    updateUserPreferenceLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserPreferenceLambda"), &awslambda.FunctionProps{
+        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+        Handler:    jsii.String("main"),
+        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-update-user-preference/function.zip"), &awss3assets.AssetOptions{}),
+        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
+    })
+    updateUserPreferenceLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(preferenceUpdateQueue, &awslambdaeventsources.SqsEventSourceProps{
+        BatchSize: jsii.Number(10),
+    }))
+    preferenceUpdateQueue.GrantConsumeMessages(updateUserPreferenceLambda)
+    userPreferenceTable.GrantReadWriteData(updateUserPreferenceLambda)
+
     // updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
     //     QueueName: jsii.String(common.UpdateFeedQueue),
     //     VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),

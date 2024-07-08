@@ -12,3 +12,10 @@ type PreferenceChange struct {
     // how much preference for each of the item changes
     ChangeWeight float64   `dynamodbav:"changeWeight" json:"changeWeight"`
 }
+
+type UserPreference struct {
+    Actors map[string]float64
+    Directors map[string]float64
+    Genres map[string]float64
+    UpdateCounter float64
+}

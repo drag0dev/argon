@@ -124,7 +124,7 @@ func queueUnsubscription(
 	}
     prefChangeItem := common.PreferenceChange{
         UpdateWeight: common.SubcribeUpdateWeight,
-        ChangeWeight: common.SubscribeChangeWeight,
+        ChangeWeight: -common.SubscribeChangeWeight,
     }
     if (subscription.Type == common.Actor) {
         prefChangeItem.Actors = []string{subscription.Target}

@@ -113,6 +113,8 @@ const AdminGroupName = "argon-admin-group"
 const PreferenceUpdateQueue = "preference-update-queue"
 const UpdateFeedQueue = "update-feed-queue"
 
+const UpdateCounterThreshhold = 35
+
 const GetChangeWeight = 0.1
 const GetUpdateWeight = 0.5
 
@@ -125,3 +127,5 @@ const ReviewChangeWeight3 = -1
 const ReviewChangeWeight4 = 2
 const ReviewChangeWeight5 = 3
 const ReviewUpdateWeight = 5
+
+const UserPreferenceTableName = "user-preference-table"
