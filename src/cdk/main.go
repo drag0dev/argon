@@ -490,27 +490,20 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		),
 	})
 	movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
 		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
     Authorizer: userPoolAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
     Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -528,27 +521,20 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		),
 	})
 	tvShowApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateShowVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-		// TODO: enable when frontend is done
-		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -569,9 +555,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("POST"),
 		awsapigateway.NewLambdaIntegration(queueSubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-			// TODO: enable when frontend is done
-			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-			// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)
@@ -579,9 +564,8 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("DELETE"),
 		awsapigateway.NewLambdaIntegration(queueUnsubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-			// TODO: enable when frontend is done
-			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-			// Authorizer:        authorizer,
+		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+    Authorizer: userPoolAuthorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)
