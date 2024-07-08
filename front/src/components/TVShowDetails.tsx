@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-const API_URL = process.env.API_URL;
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const dummyDetails = {
   id: 1,
@@ -69,8 +69,17 @@ const TVShowDetails = () => {
 
   const fetchTVShowDetails = async (uuid: string) => {
     try {
+      const session = await fetchAuthSession();
+      let token = session.tokens?.idToken!.toString();
+
       const url = `${API_URL}/tvShow?uuid=${uuid}&resolution=1920:1080&season=1&episode=1`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch TV show details');
