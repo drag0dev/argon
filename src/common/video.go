@@ -134,3 +134,25 @@ const UpdateSuffix = "_update"
 
 // auth
 const AdminGroupName = "argon-admin-group"
+
+// feed
+const PreferenceUpdateQueue = "preference-update-queue"
+const UpdateFeedQueue = "update-feed-queue"
+
+const UpdateCounterThreshhold = 35
+
+const GetChangeWeight = 0.1
+const GetUpdateWeight = 0.5
+
+const SubscribeChangeWeight = 5
+const SubcribeUpdateWeight = 5
+
+const ReviewChangeWeight1 = -3
+const ReviewChangeWeight2 = -2
+const ReviewChangeWeight3 = -1
+const ReviewChangeWeight4 = 2
+const ReviewChangeWeight5 = 3
+const ReviewUpdateWeight = 5
+
+const UserPreferenceTableName = "user-preference-table"
+const FeedTableName = "feed-table"
