@@ -21,8 +21,8 @@ const Watch = () => {
     setError(null);
 
     try {
-        const session = await fetchAuthSession();
-        let token  = session.tokens?.idToken!.toString()
+      const session = await fetchAuthSession();
+      let token = session.tokens?.idToken!.toString();
 
       let url: string;
       if (seasonId && episodeId) {
@@ -34,9 +34,9 @@ const Watch = () => {
       }
 
       const response = await fetch(url, {
-          headers: {
-              'Authorization': `Bearer ${token}`
-          }
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (!response.ok) {
         throw new Error('Failed to fetch video details');
@@ -45,8 +45,12 @@ const Watch = () => {
       const data = await response.json();
 
       if (seasonId && episodeId) {
-        const season = data.show.seasons.find((season) => season.seasonNumber === +seasonId);
-        const episode = season.episodes.find((episode) => episode.episodeNumber === +episodeId);
+        const season = data.show.seasons.find(
+          (season) => season.seasonNumber === +seasonId,
+        );
+        const episode = season.episodes.find(
+          (episode) => episode.episodeNumber === +episodeId,
+        );
 
         setVideoInfo(episode);
       } else {
@@ -95,23 +99,23 @@ const Watch = () => {
           <strong>Description:</strong> {videoInfo.description}
         </p>
         {!seasonId && !episodeId && (
-        <div>
-          <strong>Genres:</strong>
-          <ul>
-            {videoInfo.genres.map((genre) => (
-              <li key={genre}>
-                {genre}{' '}
-                <button
-                  type="button"
-                  className="button is-small is-info"
-                  onClick={() => handleSubscribe('Genre', genre)}
-                >
-                  Subscribe
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div>
+            <strong>Genres:</strong>
+            <ul>
+              {videoInfo.genres.map((genre) => (
+                <li key={genre}>
+                  {genre}{' '}
+                  <button
+                    type="button"
+                    className="button is-small is-info"
+                    onClick={() => handleSubscribe('Genre', genre)}
+                  >
+                    Subscribe
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <div>
           <strong>Actors:</strong>
