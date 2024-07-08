@@ -5,7 +5,6 @@ import VideoUpload from './VideoUpload';
 
 const API_URL = process.env.API_URL;
 
-
 interface VideoMetadata {
   type: string;
   size: number;
@@ -184,7 +183,11 @@ const EditMovieForm = ({ movie: initialMovie, setEditingMovie }) => {
 
         <div className="field">
           <div className="control">
-            <button type="submit" className="button is-primary" disabled={isLoading}>
+            <button
+              type="submit"
+              className="button is-primary"
+              disabled={isLoading}
+            >
               <span className="icon">
                 <FontAwesomeIcon icon={faEdit} />
               </span>
