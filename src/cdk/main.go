@@ -146,12 +146,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Description: jsii.String("ArgonFrontend"),
 	})
 
-
+    _ = awscognito.NewCfnUserPoolGroup(stack, jsii.String("AdminGroup"), &awscognito.CfnUserPoolGroupProps{
+        GroupName: jsii.String(common.AdminGroupName),
+        UserPoolId: userPool.UserPoolId(),
+    })
 
     userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
         CognitoUserPools: &[]awscognito.IUserPool{userPool},
         IdentitySource: jsii.String("method.request.header.Authorization"),
     })
+
+    adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
+        Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+        Handler: jsii.String("main"),
+        Code: awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
+        Environment: &map[string]*string{
+            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+        },
+    })
+    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:ListGroupsForUser"))
+
+    adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
+        Handler: adminAuthorizerLambda,
+    })
+
 
 	// Video bucket
 	videoBucket := awss3.NewBucket(stack, jsii.String("argon-videos-bucket"), &awss3.BucketProps{
@@ -480,7 +498,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
 		// TODO: enable when frontend is done
 		// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-		// Authorizer:        authorizer,
+    Authorizer: adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{

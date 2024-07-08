@@ -5,6 +5,7 @@ replace common => ../common
 require (
 	common v0.0.0-00010101000000-000000000000
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.147.2
+	github.com/aws/aws-sdk-go-v2 v1.27.1
 	github.com/aws/constructs-go/constructs/v10 v10.3.0
 	github.com/aws/jsii-runtime-go v1.99.0
 )
