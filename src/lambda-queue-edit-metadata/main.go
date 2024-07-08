@@ -112,10 +112,25 @@ func handleEpisode(editMetadataRequest *common.EditMetadataRequest) (events.APIG
 		return common.ErrorResponse(http.StatusInternalServerError, "Error unmarshalling edit target"), err
 	}
 
-	if uint64(len(show.Seasons)) <= *editMetadataRequest.SeasonNumber {
-		return common.ErrorResponse(http.StatusNotFound, "Edit target not found"), nil
+	seasonActualIdx, episodeActualIdx := -1, -1
+outer:
+	for seasonIdx, season := range show.Seasons {
+		if season.SeasonNumber != *editMetadataRequest.SeasonNumber {
+			continue
+		}
+
+		seasonActualIdx = seasonIdx
+
+		for episodeIdx, episode := range season.Episodes {
+			if episode.EpisodeNumber != *editMetadataRequest.EpisodeNumber {
+				continue
+			}
+
+			episodeActualIdx = episodeIdx
+			break outer
+		}
 	}
-	if uint64(len(show.Seasons[*editMetadataRequest.SeasonNumber].Episodes)) <= *editMetadataRequest.EpisodeNumber {
+	if seasonActualIdx == -1 || episodeActualIdx == -1 {
 		return common.ErrorResponse(http.StatusNotFound, "Edit target not found"), nil
 	}
 

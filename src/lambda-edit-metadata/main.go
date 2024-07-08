@@ -16,7 +16,7 @@ import (
 
 var dynamoDbClient *dynamodb.Client
 
-func editMovieOrShow(editMetadataRequest *common.EditMetadataRequest) error {
+func editMovieOrShow(editMetadataRequest *common.EditMetadataRequest, isEditingMovie bool) error {
 	marshaledGenres, err := attributevalue.MarshalList(editMetadataRequest.Genres)
 	if err != nil {
 		log.Printf("Error marshaling target genres: %v", err)
@@ -30,8 +30,14 @@ func editMovieOrShow(editMetadataRequest *common.EditMetadataRequest) error {
 		log.Printf("Error marshaling target directors: %v", err)
 	}
 
+	var tableName string
+	if isEditingMovie {
+		tableName = common.MovieTableName
+	} else {
+		tableName = common.ShowTableName
+	}
 	_, err = dynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
-		TableName: aws.String(common.ShowTableName),
+		TableName: aws.String(tableName),
 		Key: map[string]types.AttributeValue{
 			"id": &types.AttributeValueMemberS{Value: editMetadataRequest.TargetUUID},
 		},
@@ -70,7 +76,7 @@ func handleMovie(editMetadataRequest *common.EditMetadataRequest) error {
 		return nil
 	}
 
-	err = editMovieOrShow(editMetadataRequest)
+	err = editMovieOrShow(editMetadataRequest, true)
 	if err != nil {
 		return err
 	}
@@ -98,7 +104,7 @@ func handleShow(editMetadataRequest *common.EditMetadataRequest) error {
 		return handleMovie(editMetadataRequest)
 	}
 
-	err = editMovieOrShow(editMetadataRequest)
+	err = editMovieOrShow(editMetadataRequest, false)
 	if err != nil {
 		return err
 	}
@@ -123,15 +129,27 @@ func handleEpisode(editMetadataRequest *common.EditMetadataRequest) error {
 		return err
 	}
 
-	if uint64(len(show.Seasons)) <= *editMetadataRequest.SeasonNumber {
-		return nil
+	var targetEpisode *common.Episode = nil
+outer:
+	for seasonIdx, season := range show.Seasons {
+		if season.SeasonNumber != *editMetadataRequest.SeasonNumber {
+			continue
+		}
+
+		for episodeIdx, episode := range season.Episodes {
+			if episode.EpisodeNumber != *editMetadataRequest.EpisodeNumber {
+				continue
+			}
+
+			targetEpisode =
+				&show.Seasons[seasonIdx].Episodes[episodeIdx]
+			break outer
+		}
 	}
-	targetSeason := &show.Seasons[*editMetadataRequest.SeasonNumber]
-	if uint64(len(targetSeason.Episodes)) <= *editMetadataRequest.EpisodeNumber {
+	if targetEpisode == nil {
 		return nil
 	}
 
-	targetEpisode := &targetSeason.Episodes[*editMetadataRequest.EpisodeNumber]
 	targetEpisode.Title = editMetadataRequest.Title
 	targetEpisode.Description = editMetadataRequest.Description
 	targetEpisode.Actors = editMetadataRequest.Actors
