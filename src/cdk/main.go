@@ -67,28 +67,24 @@ func generateMethodResponses() *[]*awsapigateway.MethodResponse {
 func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackProps) awscdk.Stack {
 	stack := awscdk.NewStack(scope, &id, props)
 
+	// publishing topic
+	publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
+		TopicName: jsii.String("publishing-topic"),
+	})
 
-
-
-    // publishing topic
-    publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
-        TopicName: jsii.String("publishing-topic"),
-    })
-
-    // notification queue
-    notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
-        QueueName: jsii.String("notification-queue"),
-        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    })
-    publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
-
+	// notification queue
+	notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
+		QueueName:         jsii.String("notification-queue"),
+		VisibilityTimeout: awscdk.Duration_Minutes(jsii.Number(15)),
+	})
+	publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
 
 	// Create a Cognito User Pool
 	userPool := awscognito.NewUserPool(stack, jsii.String("ArgonUserPool"), &awscognito.UserPoolProps{
 		UserPoolName:      jsii.String("argon-user-pool"),
 		SelfSignUpEnabled: jsii.Bool(true),
 		SignInAliases: &awscognito.SignInAliases{
-			Email: jsii.Bool(true),
+			Email:    jsii.Bool(true),
 			Username: jsii.Bool(true),
 		},
 		PasswordPolicy: &awscognito.PasswordPolicy{
@@ -104,29 +100,29 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 				Mutable:  jsii.Bool(false),
 			},
 		},
-    AutoVerify: &awscognito.AutoVerifiedAttrs{
-        Email: jsii.Bool(true),
-    },
-    UserVerification: &awscognito.UserVerificationConfig{
-        EmailStyle: awscognito.VerificationEmailStyle_LINK,
-    },
-    CustomAttributes: &map[string]awscognito.ICustomAttribute{
-        "firstName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
-            Mutable: jsii.Bool(true),
-        }),
-        "lastName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
-            Mutable: jsii.Bool(true),
-        }),
-        "dateOfBirth": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
-            Mutable: jsii.Bool(true),
-        }),
-    },
+		AutoVerify: &awscognito.AutoVerifiedAttrs{
+			Email: jsii.Bool(true),
+		},
+		UserVerification: &awscognito.UserVerificationConfig{
+			EmailStyle: awscognito.VerificationEmailStyle_LINK,
+		},
+		CustomAttributes: &map[string]awscognito.ICustomAttribute{
+			"firstName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+				Mutable: jsii.Bool(true),
+			}),
+			"lastName": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+				Mutable: jsii.Bool(true),
+			}),
+			"dateOfBirth": awscognito.NewStringAttribute(&awscognito.StringAttributeProps{
+				Mutable: jsii.Bool(true),
+			}),
+		},
 	})
-    userPool.AddDomain(aws.String("Verification Domain"), &awscognito.UserPoolDomainOptions{
-        CognitoDomain: &awscognito.CognitoDomainOptions{
-            DomainPrefix: aws.String("argon-verification-domain"),
-        },
-    })
+	userPool.AddDomain(aws.String("Verification Domain"), &awscognito.UserPoolDomainOptions{
+		CognitoDomain: &awscognito.CognitoDomainOptions{
+			DomainPrefix: aws.String("argon-verification-domain"),
+		},
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("Argon User Pool"), &awscdk.CfnOutputProps{
 		Value:       userPool.UserPoolId(),
 		Description: jsii.String("Argon User Pool"),
@@ -136,40 +132,39 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	userPoolClient := awscognito.NewUserPoolClient(stack, jsii.String("ArgonFrontend"), &awscognito.UserPoolClientProps{
 		UserPool:       userPool,
 		GenerateSecret: jsii.Bool(false),
-    AuthFlows: &awscognito.AuthFlow{
-        UserSrp: jsii.Bool(true),
-        UserPassword: jsii.Bool(true),
-    },
+		AuthFlows: &awscognito.AuthFlow{
+			UserSrp:      jsii.Bool(true),
+			UserPassword: jsii.Bool(true),
+		},
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("Argon Frontend"), &awscdk.CfnOutputProps{
 		Value:       userPoolClient.UserPoolClientId(),
 		Description: jsii.String("ArgonFrontend"),
 	})
 
-    _ = awscognito.NewCfnUserPoolGroup(stack, jsii.String("AdminGroup"), &awscognito.CfnUserPoolGroupProps{
-        GroupName: jsii.String(common.AdminGroupName),
-        UserPoolId: userPool.UserPoolId(),
-    })
+	_ = awscognito.NewCfnUserPoolGroup(stack, jsii.String("AdminGroup"), &awscognito.CfnUserPoolGroupProps{
+		GroupName:  jsii.String(common.AdminGroupName),
+		UserPoolId: userPool.UserPoolId(),
+	})
 
-    userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
-        CognitoUserPools: &[]awscognito.IUserPool{userPool},
-        IdentitySource: jsii.String("method.request.header.Authorization"),
-    })
+	userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
+		CognitoUserPools: &[]awscognito.IUserPool{userPool},
+		IdentitySource:   jsii.String("method.request.header.Authorization"),
+	})
 
-    adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
-        Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-        Handler: jsii.String("main"),
-        Code: awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
-        Environment: &map[string]*string{
-            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
-        },
-    })
-    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
+	adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
+		Environment: &map[string]*string{
+			"COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+		},
+	})
+	userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
 
-    adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
-        Handler: adminAuthorizerLambda,
-    })
-
+	adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
+		Handler: adminAuthorizerLambda,
+	})
 
 	// Video bucket
 	videoBucket := awss3.NewBucket(stack, jsii.String("argon-videos-bucket"), &awss3.BucketProps{
@@ -177,16 +172,16 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
-    star := "*"
-    videoBucket.AddCorsRule(&awss3.CorsRule{
-        AllowedMethods: &[]awss3.HttpMethods{
-            awss3.HttpMethods_GET,
-            awss3.HttpMethods_PUT,
-            awss3.HttpMethods_POST,
-        },
-        AllowedOrigins: &[]*string{&star},
-        AllowedHeaders: &[]*string{&star},
-    })
+	star := "*"
+	videoBucket.AddCorsRule(&awss3.CorsRule{
+		AllowedMethods: &[]awss3.HttpMethods{
+			awss3.HttpMethods_GET,
+			awss3.HttpMethods_PUT,
+			awss3.HttpMethods_POST,
+		},
+		AllowedOrigins: &[]*string{&star},
+		AllowedHeaders: &[]*string{&star},
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("argon videos bucket"), &awscdk.CfnOutputProps{
 		Value:       jsii.String("argon-videos-bucket"),
 		Description: jsii.String("argon-videos-bucket"),
@@ -277,87 +272,90 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		QueueName: jsii.String("subscription-queue"),
 	})
 
+	// SES
+	senderEmailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonSenderEmailIdentity"), &awsses.EmailIdentityProps{
+		Identity: awsses.Identity_Email(jsii.String(common.SenderEmail)),
+	})
+	receiverEmailOneIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityOne"), &awsses.EmailIdentityProps{
+		Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail1)),
+	})
+	receiverEmailTwoIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityTwo"), &awsses.EmailIdentityProps{
+		Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail2)),
+	})
+	// configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
+	//     ConfigurationSetName: jsii.String("argon-email-config-set"),
+	// })
 
-    // SES
-    senderEmailIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonSenderEmailIdentity"), &awsses.EmailIdentityProps{
-        Identity: awsses.Identity_Email(jsii.String(common.SenderEmail)),
-    })
-    receiverEmailOneIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityOne"), &awsses.EmailIdentityProps{
-        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail1)),
-    })
-    receiverEmailTwoIdentity := awsses.NewEmailIdentity(stack, jsii.String("ArgonReceiverEmailIdentityTwo"), &awsses.EmailIdentityProps{
-        Identity: awsses.Identity_Email(jsii.String(common.ReceiverEmail2)),
-    })
-    // configSet := awsses.NewConfigurationSet(stack, jsii.String("ArgonEmailConfigSet"), &awsses.ConfigurationSetProps{
-    //     ConfigurationSetName: jsii.String("argon-email-config-set"),
-    // })
+	// create notifications lambda
+	createNotificationLambda := awslambda.NewFunction(stack, jsii.String("CreateNotificationLambda"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-create-notification/function.zip"), &awss3assets.AssetOptions{}),
+		Environment: &map[string]*string{
+			"COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+		},
+		Timeout: awscdk.Duration_Minutes(jsii.Number(10)),
+	})
+	createNotificationLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(notificationQueue, &awslambdaeventsources.SqsEventSourceProps{
+		BatchSize: jsii.Number(1),
+	}))
+	notificationQueue.GrantConsumeMessages(createNotificationLambda)
+	adminGetUserPermission := "cognito-idp:AdminGetUser"
+	userPool.Grant(createNotificationLambda, &adminGetUserPermission)
+	senderEmailIdentity.GrantSendEmail(createNotificationLambda)
+	subscriptionTable.GrantReadData(createNotificationLambda)
+	movieTable.GrantReadData(createNotificationLambda)
+	showTable.GrantReadData(createNotificationLambda)
+	receiverEmailOneIdentity.GrantSendEmail(createNotificationLambda)
+	receiverEmailTwoIdentity.GrantSendEmail(createNotificationLambda)
 
-
-    // create notifications lambda
-    createNotificationLambda := awslambda.NewFunction(stack, jsii.String("CreateNotificationLambda"), &awslambda.FunctionProps{
-        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
-        Handler:    jsii.String("main"),
-        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-create-notification/function.zip"), &awss3assets.AssetOptions{}),
-        Environment: &map[string]*string{
-            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
-        },
-        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
-    })
-    createNotificationLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(notificationQueue, &awslambdaeventsources.SqsEventSourceProps{
-        BatchSize: jsii.Number(1),
-    }))
-    notificationQueue.GrantConsumeMessages(createNotificationLambda)
-    adminGetUserPermission := "cognito-idp:AdminGetUser"
-    userPool.Grant(createNotificationLambda, &adminGetUserPermission)
-    senderEmailIdentity.GrantSendEmail(createNotificationLambda)
-    subscriptionTable.GrantReadData(createNotificationLambda)
-    movieTable.GrantReadData(createNotificationLambda)
-    showTable.GrantReadData(createNotificationLambda)
-    receiverEmailOneIdentity.GrantSendEmail(createNotificationLambda)
-    receiverEmailTwoIdentity.GrantSendEmail(createNotificationLambda)
-
-    // Transcoding lambda
-    ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
-        Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
-        Description: jsii.String("FFmpeg binary"),
-        CompatibleRuntimes: &[]awslambda.Runtime{
-            awslambda.Runtime_PROVIDED_AL2023(),
-        },
-    })
-    transcoderLambda := awslambda.NewFunction(stack, jsii.String("VideoTranscoding"), &awslambda.FunctionProps{
-        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
-        Handler:    jsii.String("main"),
-        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
-        Timeout:    awscdk.Duration_Minutes(jsii.Number(2)),
-        MemorySize: jsii.Number(1024),
-        Layers: &[]awslambda.ILayerVersion{
-            ffmpegLayer,
-        },
-        Environment: &map[string]*string{
-            "PUBLISHING_TOPIC_ARN": publishingTopic.TopicArn(),
-        },
-    })
-    videoBucket.GrantReadWrite(transcoderLambda, jsii.String("*"))
-    videoBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED,
-        awss3notifications.NewLambdaDestination(transcoderLambda),
-        &awss3.NotificationKeyFilter{
-            Suffix: jsii.String("_original"),
-        },
-    )
-    movieTable.GrantReadWriteData(transcoderLambda)
-    showTable.GrantReadWriteData(transcoderLambda)
-    publishingTopic.GrantPublish(transcoderLambda)
+	// Transcoding lambda
+	ffmpegLayer := awslambda.NewLayerVersion(stack, jsii.String("FFmpegLayer"), &awslambda.LayerVersionProps{
+		Code:        awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/ffmpeg.zip"), &awss3assets.AssetOptions{}),
+		Description: jsii.String("FFmpeg binary"),
+		CompatibleRuntimes: &[]awslambda.Runtime{
+			awslambda.Runtime_PROVIDED_AL2023(),
+		},
+	})
+	transcoderLambda := awslambda.NewFunction(stack, jsii.String("VideoTranscoding"), &awslambda.FunctionProps{
+		Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
+		Handler:    jsii.String("main"),
+		Code:       awslambda.Code_FromAsset(jsii.String("../lambda-transcoder/function.zip"), &awss3assets.AssetOptions{}),
+		Timeout:    awscdk.Duration_Minutes(jsii.Number(2)),
+		MemorySize: jsii.Number(1024),
+		Layers: &[]awslambda.ILayerVersion{
+			ffmpegLayer,
+		},
+		Environment: &map[string]*string{
+			"PUBLISHING_TOPIC_ARN": publishingTopic.TopicArn(),
+		},
+	})
+	videoBucket.GrantReadWrite(transcoderLambda, jsii.String("*"))
+	videoBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED,
+		awss3notifications.NewLambdaDestination(transcoderLambda),
+		&awss3.NotificationKeyFilter{
+			Suffix: jsii.String("_original"),
+		},
+	)
+	movieTable.GrantReadWriteData(transcoderLambda)
+	showTable.GrantReadWriteData(transcoderLambda)
+	publishingTopic.GrantPublish(transcoderLambda)
 
 	// unsubscription queue
 	unsubscriptionQueue := awssqs.NewQueue(stack, jsii.String("UnsubscriptionQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("unsubscription-queue"),
 	})
-  
-  // review queue
+
+	// review queue
 	reviewQueue := awssqs.NewQueue(stack, jsii.String("ReviewQueue"), &awssqs.QueueProps{
 		QueueName: jsii.String("review-queue"),
 	})
-  
+
+	// edit metadata request queue
+	editMetadataRequestQueue := awssqs.NewQueue(stack, jsii.String("EditMetadataRequestQueue"), &awssqs.QueueProps{
+		QueueName: jsii.String("edit-metadata-request-queue"),
+	})
+
 	// Movie Lambdas
 	getMovieLambda := awslambda.NewFunction(stack, jsii.String("GetMovie"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
@@ -511,6 +509,44 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	showTable.GrantReadData(reviewLambda)
 	reviewTable.GrantWriteData(reviewLambda)
 
+	// Edit metadata Lambdas
+	queueEditMetadataLambda := awslambda.NewFunction(
+		stack,
+		jsii.String("QueueEditMetadata"),
+		&awslambda.FunctionProps{
+			Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+			Handler: jsii.String("main"),
+			Code: awslambda.Code_FromAsset(
+				jsii.String("../lambda-queue-edit-metadata/function.zip"),
+				&awss3assets.AssetOptions{},
+			),
+		},
+	)
+	editMetadataLambda := awslambda.NewFunction(
+		stack,
+		jsii.String("EditMetadata"),
+		&awslambda.FunctionProps{
+			Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+			Handler: jsii.String("main"),
+			Code: awslambda.Code_FromAsset(
+				jsii.String("../lambda-edit-metadata/function.zip"),
+				&awss3assets.AssetOptions{},
+			),
+		},
+	)
+	editMetadataRequestQueue.GrantSendMessages(queueEditMetadataLambda)
+	editMetadataLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(
+		editMetadataRequestQueue,
+		&awslambdaeventsources.SqsEventSourceProps{
+			BatchSize: jsii.Number(1),
+		},
+	))
+	editMetadataRequestQueue.GrantConsumeMessages(editMetadataLambda)
+	movieTable.GrantReadData(queueEditMetadataLambda)
+	movieTable.GrantReadWriteData(editMetadataLambda)
+	showTable.GrantReadData(queueEditMetadataLambda)
+	showTable.GrantReadWriteData(editMetadataLambda)
+
 	// Create an API Gateway
 	api := awsapigateway.NewRestApi(stack, jsii.String("ArgonAPI"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.String("ArgonAPI"),
@@ -522,12 +558,6 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Value:       api.Url(),
 		Description: jsii.String("API Gateway URL"),
 	})
-
-	// TODO: enable when frontend is done
-	// Create a Cognito Authorizer
-	// authorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("ArgonCognitoAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
-	//     CognitoUserPools: &[]awscognito.IUserPool{userPool},
-	// })
 
 	// Api Gateway movie resource
 	movieApiResource := api.Root().AddResource(jsii.String("movie"), nil)
@@ -544,19 +574,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	})
 	movieApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
 		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-    Authorizer: userPoolAuthorizer,
-		MethodResponses: generateMethodResponses(),
+		Authorizer:        userPoolAuthorizer,
+		MethodResponses:   generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteMovieLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	movieApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateMovieVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -575,19 +605,19 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	})
 	tvShowApiResource.AddMethod(jsii.String("GET"), awsapigateway.NewLambdaIntegration(getShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
 		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-    Authorizer: userPoolAuthorizer,
-		MethodResponses: generateMethodResponses(),
+		Authorizer:        userPoolAuthorizer,
+		MethodResponses:   generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(postShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteShowLambda, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 	tvShowApiResource.AddMethod(jsii.String("PUT"), awsapigateway.NewLambdaIntegration(updateShowVideo, generateLambdaIntegrationOptions()), &awsapigateway.MethodOptions{
-    Authorizer: adminAuthorizer,
+		Authorizer:      adminAuthorizer,
 		MethodResponses: generateMethodResponses(),
 	})
 
@@ -608,18 +638,18 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("POST"),
 		awsapigateway.NewLambdaIntegration(queueSubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-    Authorizer: userPoolAuthorizer,
-			MethodResponses: generateMethodResponses(),
+			AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			Authorizer:        userPoolAuthorizer,
+			MethodResponses:   generateMethodResponses(),
 		},
 	)
 	subscriptionApiResource.AddMethod(
 		jsii.String("DELETE"),
 		awsapigateway.NewLambdaIntegration(queueUnsubscriptionLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-		AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-    Authorizer: userPoolAuthorizer,
-			MethodResponses: generateMethodResponses(),
+			AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			Authorizer:        userPoolAuthorizer,
+			MethodResponses:   generateMethodResponses(),
 		},
 	)
 
@@ -640,9 +670,30 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		jsii.String("POST"),
 		awsapigateway.NewLambdaIntegration(queueReviewLambda, generateLambdaIntegrationOptions()),
 		&awsapigateway.MethodOptions{
-			// TODO: enable when frontend is done
-			// AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
-			// Authorizer:        authorizer,
+			AuthorizationType: awsapigateway.AuthorizationType_COGNITO,
+			Authorizer:        userPoolAuthorizer,
+			MethodResponses:   generateMethodResponses(),
+		},
+	)
+
+	// API gateway edit metadata resource
+	editMetadataApiResource := api.Root().AddResource(jsii.String("editMetadata"), nil)
+	editMetadataApiResource.AddCorsPreflight(&awsapigateway.CorsOptions{
+		AllowOrigins: awsapigateway.Cors_ALL_ORIGINS(),
+		AllowMethods: jsii.Strings("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+		AllowHeaders: jsii.Strings(
+			"Content-Type",
+			"X-Amz-Date",
+			"Authorization",
+			"X-Api-Key",
+			"X-Amz-Security-Token",
+		),
+	})
+	editMetadataApiResource.AddMethod(
+		jsii.String("PUT"),
+		awsapigateway.NewLambdaIntegration(queueEditMetadataLambda, generateLambdaIntegrationOptions()),
+		&awsapigateway.MethodOptions{
+			Authorizer:      adminAuthorizer,
 			MethodResponses: generateMethodResponses(),
 		},
 	)

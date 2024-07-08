@@ -96,6 +96,18 @@ type Review struct {
 	Comment    string `dynamodbav:"comment" json:"comment"`
 }
 
+type EditMetadataRequest struct {
+	// The thing whose metadata is being edited
+	TargetUUID    string   `json:"targetId"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	Genres        []string `json:"genres"`
+	Actors        []string `json:"actors"`
+	Directors     []string `json:"directors"`
+	SeasonNumber  *uint64  `json:"seasonNumber"`
+	EpisodeNumber *uint64  `json:"episodeNumber"`
+}
+
 const VideoBucketName = "argon-videos-bucket"
 const MovieTableName = "movie"
 const ShowTableName = "show"
@@ -107,6 +119,7 @@ const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
 const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
 const ReviewQueueName = "review-queue"
+const EditMetadataRequestQueueName = "edit-metadata-request-queue"
 
 // email consts
 var SenderEmail = "senderargon@gmail.com"
