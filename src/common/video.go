@@ -113,15 +113,15 @@ const AdminGroupName = "argon-admin-group"
 const PreferenceUpdateQueue = "preference-update-queue"
 const UpdateFeedQueue = "update-feed-queue"
 
-const getChangeWeight = 0.01
-const getUpdateWeight = 0.5
+const GetChangeWeight = 0.1
+const GetUpdateWeight = 0.5
 
-const subscribeChangeWeight = 5
-const subcribeUpdateWeight = 5
+const SubscribeChangeWeight = 5
+const SubcribeUpdateWeight = 5
 
-const reviewChangeWeight1 = -3
-const reviewChangeWeight2 = -2
-const reviewChangeWeight3 = -1
-const reviewChangeWeight4 = 2
-const reviewChangeWeight5 = 3
-const reviewUpdateWeight = 5
+const ReviewChangeWeight1 = -3
+const ReviewChangeWeight2 = -2
+const ReviewChangeWeight3 = -1
+const ReviewChangeWeight4 = 2
+const ReviewChangeWeight5 = 3
+const ReviewUpdateWeight = 5

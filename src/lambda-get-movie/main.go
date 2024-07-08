@@ -8,15 +8,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 type GetMovieResponse struct {
@@ -27,7 +31,56 @@ type GetMovieResponse struct {
 
 var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
+var preferenceChangeQueueClient *sqs.Client
 const expiration = 300 // 5m
+
+func enqueChangePreferenceItem(prefChangeItem common.PreferenceChange, headerVal string) {
+    token := strings.TrimPrefix(headerVal, "Bearer ")
+    if (token == "") {
+        log.Printf("Missing token")
+        return
+    }
+
+    parsedToken, err := jwt.Parse([]byte(token))
+    if (err != nil) {
+        log.Printf("Error parsing token: %v", err)
+        return
+    }
+
+    sub, ok := parsedToken.Get("sub")
+    if !ok {
+        log.Println("sub claim not found in token")
+        return
+    }
+
+    userId, ok := sub.(string)
+    if !ok {
+        log.Println("userid is not string")
+        return
+    }
+    prefChangeItem.UserId = userId
+
+    prefChangeMarshaled, err := json.Marshal(prefChangeItem)
+    if (err != nil ) {
+        log.Printf("Error marshaling preference change item: %v", err)
+        return
+    }
+
+    queueUrl, err := preferenceChangeQueueClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
+        QueueName: aws.String(common.PreferenceUpdateQueue),
+    })
+    if err != nil {
+        log.Printf("Error getting queue url: %v", err)
+        return
+    }
+
+    sendInput := &sqs.SendMessageInput{
+        MessageBody: aws.String(string(prefChangeMarshaled)),
+        QueueUrl:    queueUrl.QueueUrl,
+    }
+    _, err = preferenceChangeQueueClient.SendMessage(context.TODO(), sendInput)
+    if err != nil { log.Printf("Error enquing preference change item: %v", err) }
+}
 
 func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     uuid, ok := incomingRequest.QueryStringParameters["uuid"]
@@ -101,6 +154,15 @@ func getMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest
         return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling res response for getting movie")
     }
 
+    prefChangeItem := common.PreferenceChange{
+        UpdateWeight: common.GetUpdateWeight,
+        ChangeWeight: common.GetChangeWeight,
+        Actors: movie.Actors,
+        Directors: movie.Directors,
+        Genres: movie.Genres,
+    }
+    enqueChangePreferenceItem(prefChangeItem, incomingRequest.Headers["Authorization"])
+
     return events.APIGatewayProxyResponse{
         StatusCode: http.StatusOK,
         Headers: map[string]string{
@@ -122,7 +184,7 @@ func main() {
 
     s3Client := s3.NewFromConfig(sdkConfig)
     s3PresignClient = s3.NewPresignClient(s3Client)
-
+    preferenceChangeQueueClient = sqs.NewFromConfig(sdkConfig)
     dynamodbClient = dynamodb.NewFromConfig(sdkConfig)
 
     lambda.Start(getMovie)

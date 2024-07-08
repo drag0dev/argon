@@ -72,10 +72,10 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
         VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
     })
 
-    updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
-        QueueName: jsii.String(common.UpdateFeedQueue),
-        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    })
+    // updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
+    //     QueueName: jsii.String(common.UpdateFeedQueue),
+    //     VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+    // })
 
     // publishing topic
     publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
@@ -171,7 +171,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
             "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
         },
     })
-    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:ListGroupsForUser"))
+    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
 
     adminAuthorizer := awsapigateway.NewTokenAuthorizer(stack, jsii.String("AdminAuthorizer"), &awsapigateway.TokenAuthorizerProps{
         Handler: adminAuthorizerLambda,
@@ -365,6 +365,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-video-movie/function.zip"), &awss3assets.AssetOptions{}),
 	})
 	videoBucket.GrantRead(getMovieLambda, jsii.String("*"))
+    preferenceUpdateQueue.GrantSendMessages(getMovieLambda)
 	videoBucket.GrantPut(postMovieLambda, jsii.String("*"))
 	videoBucket.GrantDelete(deleteMovieLambda, jsii.String("*"))
 	videoBucket.GrantReadWrite(updateMovieVideo, jsii.String("*"))
@@ -395,6 +396,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-video-show/function.zip"), &awss3assets.AssetOptions{}),
 	})
 	videoBucket.GrantRead(getShowLambda, jsii.String("*"))
+    preferenceUpdateQueue.GrantSendMessages(getShowLambda)
 	videoBucket.GrantPut(postShowLambda, jsii.String("*"))
 	videoBucket.GrantDelete(deleteShowLambda, jsii.String("*"))
 	videoBucket.GrantReadWrite(updateShowVideo, jsii.String("*"))
