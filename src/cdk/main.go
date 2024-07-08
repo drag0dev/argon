@@ -418,6 +418,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			),
 		},
 	)
+    preferenceUpdateQueue.GrantSendMessages(queueSubscriptionLambda)
 	subscribeLambda := awslambda.NewFunction(stack, jsii.String("Subscribe"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("main"),
@@ -438,6 +439,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			),
 		},
 	)
+    preferenceUpdateQueue.GrantSendMessages(queueUnsubscriptionLambda)
 	unsubscribeLambda := awslambda.NewFunction(stack, jsii.String("Unsubscribe"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("main"),

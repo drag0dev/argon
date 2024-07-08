@@ -5,6 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"strings"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,12 +17,60 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/jsii-runtime-go"
-	"log"
-	"net/http"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 var dynamoDbClient *dynamodb.Client
 var sqsClient *sqs.Client
+var preferenceChangeQueueClient *sqs.Client
+
+func enqueChangePreferenceItem(prefChangeItem common.PreferenceChange, headerVal string) {
+    token := strings.TrimPrefix(headerVal, "Bearer ")
+    if (token == "") {
+        log.Printf("Missing token")
+        return
+    }
+
+    parsedToken, err := jwt.Parse([]byte(token))
+    if (err != nil) {
+        log.Printf("Error parsing token: %v", err)
+        return
+    }
+
+    sub, ok := parsedToken.Get("sub")
+    if !ok {
+        log.Println("sub claim not found in token")
+        return
+    }
+
+    userId, ok := sub.(string)
+    if !ok {
+        log.Println("userid is not string")
+        return
+    }
+    prefChangeItem.UserId = userId
+
+    prefChangeMarshaled, err := json.Marshal(prefChangeItem)
+    if (err != nil ) {
+        log.Printf("Error marshaling preference change item: %v", err)
+        return
+    }
+
+    queueUrl, err := preferenceChangeQueueClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
+        QueueName: aws.String(common.PreferenceUpdateQueue),
+    })
+    if err != nil {
+        log.Printf("Error getting queue url: %v", err)
+        return
+    }
+
+    sendInput := &sqs.SendMessageInput{
+        MessageBody: aws.String(string(prefChangeMarshaled)),
+        QueueUrl:    queueUrl.QueueUrl,
+    }
+    _, err = preferenceChangeQueueClient.SendMessage(context.TODO(), sendInput)
+    if err != nil { log.Printf("Error enquing preference change item: %v", err) }
+}
 
 func queueSubscription(
 	ctx context.Context,
@@ -74,6 +126,19 @@ func queueSubscription(
 		return common.ErrorResponse(http.StatusInternalServerError, "Error sending message to queue."), err
 	}
 
+    prefChangeItem := common.PreferenceChange{
+        UpdateWeight: common.SubcribeUpdateWeight,
+        ChangeWeight: common.SubscribeChangeWeight,
+    }
+    if (subscription.Type == common.Actor) {
+        prefChangeItem.Actors = []string{subscription.Target}
+    } else if (subscription.Type == common.Genre) {
+        prefChangeItem.Genres = []string{subscription.Target}
+    } else {
+        prefChangeItem.Directors = []string{subscription.Target}
+    }
+    enqueChangePreferenceItem(prefChangeItem, request.Headers["Authorization"])
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
         Headers: map[string]string{
@@ -95,6 +160,6 @@ func main() {
 
 	dynamoDbClient = dynamodb.NewFromConfig(sdkConfig)
 	sqsClient = sqs.NewFromConfig(sdkConfig)
-
+    preferenceChangeQueueClient = sqs.NewFromConfig(sdkConfig)
 	lambda.Start(queueSubscription)
 }
