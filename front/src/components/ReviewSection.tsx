@@ -1,4 +1,7 @@
+import { fetchAuthSession } from 'aws-amplify/auth';
 import React, { useState, useEffect } from 'react';
+
+const API_URL = process.env.API_URL;
 
 const ReviewSection = ({ targetUUID }) => {
   const [reviews, setReviews] = useState([]);
@@ -28,8 +31,33 @@ const ReviewSection = ({ targetUUID }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Submit review logic
+    //
     console.log(`Submitting review: ${comment} with grade: ${grade}`);
-    // Add logic to send this data to your backend
+    try {
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
+        let userId = session.tokens?.idToken?.payload.sub!
+        const response = await fetch(`${API_URL}/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                targetId: targetUUID,
+                grade: parseInt(""+grade),
+                comment: comment
+            }),
+        });
+        if (!response.ok) {
+            alert("Failed to leave a review")
+        }
+    } catch (error) {
+        console.error("Error leaving a review:", error)
+        alert("Failed to leave a review")
+    }
+
   };
 
   return (
