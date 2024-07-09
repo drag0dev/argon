@@ -115,6 +115,7 @@ const SubscriptionTableName = "subscription"
 const ReviewTableName = "review"
 
 const SubscriptionTableSecondaryIndex = "subscription-secondary-index"
+const SubscriptionTableUserIdSecondaryIndex = "user-id-secondary-index"
 
 const SubscriptionQueueName = "subscription-queue"
 const UnsubscriptionQueueName = "unsubscription-queue"
