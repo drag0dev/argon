@@ -1,6 +1,16 @@
+import { signOut } from 'aws-amplify/auth';
 import { Link } from 'react-router-dom';
 
 const NavBar = () => {
+    let handlerLogOut = async () => {
+        try {
+            await signOut({global: true})
+            alert("succefully logged out")
+        } catch (error) {
+            alert("error loging out " + error)
+        }
+
+    }
   return (
     <nav className="navbar" aria-label="main navigation">
       <div className="navbar-brand">
@@ -90,6 +100,9 @@ const NavBar = () => {
               <Link to="/login" className="button is-light">
                 Log in
               </Link>
+              <button className="button is-ligt" onClick={handlerLogOut}>
+                Log out
+              </button>
             </div>
           </div>
         </div>

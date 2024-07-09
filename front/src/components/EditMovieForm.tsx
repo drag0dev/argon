@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit } from '@fortawesome/free-solid-svg-icons';
 import VideoUpload from './VideoUpload';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_URL = process.env.API_URL;
 
@@ -68,10 +69,13 @@ const EditMovieForm = ({ movie: initialMovie, setEditingMovie }) => {
 
     try {
       // PUT request to update the metadata ?
+        const session = await fetchAuthSession();
+        let token  = session.tokens?.idToken!.toString()
       const response = await fetch(`${API_URL}/movie`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           uuid: movie.id,
