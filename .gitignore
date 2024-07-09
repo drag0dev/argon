@@ -1,3 +1,6 @@
+**/bootstrap
+src/build-system/*-amd64-static
+
 ### ArchLinuxPackages ###
 *.tar
 *.tar.*
@@ -9,9 +12,6 @@
 *.log
 *.log.*
 *.sig
-
-pkg/
-src/
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:

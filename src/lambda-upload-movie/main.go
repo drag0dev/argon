@@ -3,12 +3,14 @@ package main
 import (
 	"common"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"strings"
+	"net/http"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,16 +29,22 @@ var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
 const expiration = 3600 // 60m
 
-func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, error) {
+func uploadMovie(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+    var event common.Movie
+    err := json.Unmarshal([]byte(incomingRequest.Body), &event)
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    if (!common.IsMovieValid(&event)) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+
     movieUUID := uuid.New().String()
     event.UUID = movieUUID
 
+    event.Video.Ready = false
+
     timestamp := time.Now().Unix()
-    fileName := fmt.Sprintf("%s-%d.%s", movieUUID, timestamp, event.Video.FileType)
-    // having '/' in the name causes s3 to treat it as a folder
-    fileName = strings.ReplaceAll(fileName, "/", "-")
+    fileName := fmt.Sprintf("%s-%d", movieUUID, timestamp)
 
     event.Video.FileName = fileName
+    fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
 
     // create pre signed url
     request, err := s3PresignClient.PresignPutObject(context.TODO(),
@@ -50,14 +58,14 @@ func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, 
 
     if err != nil {
         log.Printf("Error getting presigned url for uploading movie for \"%s\": %v", fileName, err)
-        return UploadMovieResponse{}, errors.New("Error creating presign url")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error creating presign url")
     }
 
     // add the movie to the db
     marshaledMovie, err := attributevalue.MarshalMap(event)
     if err != nil {
         log.Printf("Error marshaling movie: %v", err)
-        return UploadMovieResponse{}, errors.New("Error marshaling movie")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling movie")
     }
 
     tableName := common.MovieTableName
@@ -69,15 +77,30 @@ func uploadMovie(ctx context.Context, event common.Movie) (UploadMovieResponse, 
      _, err = dynamodbClient.PutItem(context.TODO(), input)
     if err != nil {
         log.Printf("Error putting movie: %v", err)
-        return UploadMovieResponse{}, errors.New("Error putting movie")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error putting movie")
     }
 
     res := UploadMovieResponse {
         Url: request.URL,
         Method: request.Method,
     }
+    resString, err := json.Marshal(res)
+    if (err != nil) {
+        log.Printf("Error marshaling res: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling movie")
+    }
 
-    return res, nil
+    return events.APIGatewayProxyResponse{
+        StatusCode: http.StatusOK,
+        Headers: map[string]string{
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        },
+        Body: string(resString),
+    }, nil
 }
 
 func main() {

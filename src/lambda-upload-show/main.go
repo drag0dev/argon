@@ -3,12 +3,14 @@ package main
 import (
 	"common"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"strings"
+	"net/http"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -33,7 +35,12 @@ var s3PresignClient *s3.PresignClient;
 var dynamodbClient *dynamodb.Client
 const expiration = 3600 // 60m
 
-func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, error) {
+func uploadShow(ctx context.Context, incomingRequest events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+    var event common.Show
+    err := json.Unmarshal([]byte(incomingRequest.Body), &event)
+    if (err != nil) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+    if (!common.IsShowValid(&event)) { return common.ErrorResponse(http.StatusBadRequest, "Malformed input"), nil }
+
     showUUID := uuid.New().String()
     event.UUID = showUUID
 
@@ -45,14 +52,15 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
     for seasonIndex := 0; seasonIndex < len(event.Seasons); seasonIndex++ {
         for episodeIndex := 0; episodeIndex < len(event.Seasons[seasonIndex].Episodes); episodeIndex++ {
             timestamp := time.Now().Unix()
-            fileName := fmt.Sprintf("%s-%d-%d-%d.%s",
+            fileName := fmt.Sprintf("%s-%d-%d-%d",
                 showUUID, event.Seasons[seasonIndex].SeasonNumber,
                 event.Seasons[seasonIndex].Episodes[episodeIndex].EpisodeNumber,
-                timestamp, event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileType)
-            // having '/' in the name causes s3 to treat it as a folder
-            fileName = strings.ReplaceAll(fileName, "/", "-")
+                timestamp)
 
             event.Seasons[seasonIndex].Episodes[episodeIndex].Video.FileName = fileName
+            event.Seasons[seasonIndex].Episodes[episodeIndex].Video.Ready = false
+
+            fileName = fmt.Sprintf("%s%s", fileName, common.OriginalSuffix)
 
             // create pre signed url
             request, err := s3PresignClient.PresignPutObject(context.TODO(),
@@ -66,7 +74,7 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
 
             if err != nil {
                 log.Printf("Error getting presigned url for uploading show for \"%s\": %v", fileName, err)
-                return UploadShowResponse{}, errors.New("Error creating presign url")
+                return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error creating presign url")
             }
 
             url := SingleVideo {
@@ -84,7 +92,7 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
     marshaledShow, err := attributevalue.MarshalMap(event)
     if err != nil {
         log.Printf("Error marshaling show: %v", err)
-        return UploadShowResponse{}, errors.New("Error marshaling show")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling show")
     }
 
     tableName := common.ShowTableName
@@ -96,10 +104,26 @@ func uploadShow(ctx context.Context, event common.Show) (UploadShowResponse, err
      _, err = dynamodbClient.PutItem(context.TODO(), input)
     if err != nil {
         log.Printf("Error putting show: %v", err)
-        return UploadShowResponse{}, errors.New("Error putting show")
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error putting show")
     }
 
-    return res, nil
+    resString, err := json.Marshal(res)
+    if (err != nil) {
+        log.Printf("Error marshaling res: %v", err)
+        return common.EmptyErrorResponse(http.StatusInternalServerError), errors.New("Error marshaling res")
+    }
+
+    return events.APIGatewayProxyResponse{
+        StatusCode: http.StatusOK,
+        Headers: map[string]string{
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        },
+        Body: string(resString),
+    }, nil
 }
 
 func main() {
