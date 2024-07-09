@@ -325,6 +325,15 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		ReadCapacity:  jsii.Number(1),
 		WriteCapacity: jsii.Number(1),
 	})
+	subscriptionTable.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
+		IndexName: jsii.String("user-id-secondary-index"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("userId"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("subscription table"), &awscdk.CfnOutputProps{
 		Value:       subscriptionTable.TableName(),
 		Description: jsii.String("subscription-table"),

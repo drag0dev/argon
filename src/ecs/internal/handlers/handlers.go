@@ -7,10 +7,22 @@ import (
 )
 
 func RegisterRoutes(r *gin.RouterGroup) {
-	r.GET("/hello", HelloHandler)
+	r.GET("/subscriptions", HandleSubscriptions)
 }
 
-func HelloHandler(c *gin.Context) {
-	message := services.GetHelloMessage()
-	c.JSON(http.StatusOK, gin.H{"message": message})
+func HandleSubscriptions(c *gin.Context) {
+	userId := c.Query("userId")
+	if len(userId) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Malformed input."})
+		return
+	}
+
+	subscriptions, err := services.GetSubscriptions(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"subscriptions": subscriptions})
+	return
 }
