@@ -67,79 +67,77 @@ func generateMethodResponses() *[]*awsapigateway.MethodResponse {
 func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackProps) awscdk.Stack {
 	stack := awscdk.NewStack(scope, &id, props)
 
-    preferenceUpdateQueue := awssqs.NewQueue(stack, jsii.String("PreferenceUpdateQueue"), &awssqs.QueueProps{
-        QueueName: jsii.String(common.PreferenceUpdateQueue),
-        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    })
-    updateFeedQueue := awssqs.NewQueue(stack, jsii.String("UpdateFeedQueue"), &awssqs.QueueProps{
-        QueueName: jsii.String(common.UpdateFeedQueue),
-        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    })
+	preferenceUpdateQueue := awssqs.NewQueue(stack, jsii.String("PreferenceUpdateQueue"), &awssqs.QueueProps{
+		QueueName:         jsii.String(common.PreferenceUpdateQueue),
+		VisibilityTimeout: awscdk.Duration_Minutes(jsii.Number(15)),
+	})
+	updateFeedQueue := awssqs.NewQueue(stack, jsii.String("UpdateFeedQueue"), &awssqs.QueueProps{
+		QueueName:         jsii.String(common.UpdateFeedQueue),
+		VisibilityTimeout: awscdk.Duration_Minutes(jsii.Number(15)),
+	})
 
-    userPreferenceTable := awsdynamodb.NewTable(stack, jsii.String("user-preference-table"), &awsdynamodb.TableProps{
-        TableName: jsii.String(common.UserPreferenceTableName),
-        PartitionKey: &awsdynamodb.Attribute{
-            Name: jsii.String("userId"),
-            Type: awsdynamodb.AttributeType_STRING,
-        },
-        BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
-        ReadCapacity:  jsii.Number(1),
-        WriteCapacity: jsii.Number(1),
-        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
-    })
-    awscdk.NewCfnOutput(stack, jsii.String("user preference table"), &awscdk.CfnOutputProps{
-        Value:       userPreferenceTable.TableName(),
-        Description: jsii.String("user-preference-table"),
-    })
+	userPreferenceTable := awsdynamodb.NewTable(stack, jsii.String("user-preference-table"), &awsdynamodb.TableProps{
+		TableName: jsii.String(common.UserPreferenceTableName),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("userId"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("user preference table"), &awscdk.CfnOutputProps{
+		Value:       userPreferenceTable.TableName(),
+		Description: jsii.String("user-preference-table"),
+	})
 
-    userFeedTable := awsdynamodb.NewTable(stack, jsii.String("user-feed-table"), &awsdynamodb.TableProps{
-        TableName: jsii.String(common.FeedTableName),
-        PartitionKey: &awsdynamodb.Attribute{
-            Name: jsii.String("userId"),
-            Type: awsdynamodb.AttributeType_STRING,
-        },
-        BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
-        ReadCapacity:  jsii.Number(1),
-        WriteCapacity: jsii.Number(1),
-        RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
-    })
-    awscdk.NewCfnOutput(stack, jsii.String("user feed table"), &awscdk.CfnOutputProps{
-        Value:       userFeedTable.TableName(),
-        Description: jsii.String("user-preference-table"),
-    })
+	userFeedTable := awsdynamodb.NewTable(stack, jsii.String("user-feed-table"), &awsdynamodb.TableProps{
+		TableName: jsii.String(common.FeedTableName),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("userId"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		BillingMode:   awsdynamodb.BillingMode_PROVISIONED,
+		ReadCapacity:  jsii.Number(1),
+		WriteCapacity: jsii.Number(1),
+		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("user feed table"), &awscdk.CfnOutputProps{
+		Value:       userFeedTable.TableName(),
+		Description: jsii.String("user-preference-table"),
+	})
 
+	// update user preference lambda
+	updateUserPreferenceLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserPreferenceLambda"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-user-preference/function.zip"), &awss3assets.AssetOptions{}),
+		Timeout: awscdk.Duration_Minutes(jsii.Number(10)),
+	})
+	updateUserPreferenceLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(preferenceUpdateQueue, &awslambdaeventsources.SqsEventSourceProps{
+		BatchSize: jsii.Number(10),
+	}))
+	preferenceUpdateQueue.GrantConsumeMessages(updateUserPreferenceLambda)
+	updateFeedQueue.GrantSendMessages(updateUserPreferenceLambda)
+	userPreferenceTable.GrantReadWriteData(updateUserPreferenceLambda)
 
-    // update user preference lambda
-    updateUserPreferenceLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserPreferenceLambda"), &awslambda.FunctionProps{
-        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
-        Handler:    jsii.String("main"),
-        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-update-user-preference/function.zip"), &awss3assets.AssetOptions{}),
-        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
-    })
-    updateUserPreferenceLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(preferenceUpdateQueue, &awslambdaeventsources.SqsEventSourceProps{
-        BatchSize: jsii.Number(10),
-    }))
-    preferenceUpdateQueue.GrantConsumeMessages(updateUserPreferenceLambda)
-    updateFeedQueue.GrantSendMessages(updateUserPreferenceLambda)
-    userPreferenceTable.GrantReadWriteData(updateUserPreferenceLambda)
+	// updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
+	//     QueueName: jsii.String(common.UpdateFeedQueue),
+	//     VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
+	// })
 
-    // updateFeedQueue := awssqs.NewQueue(stack, jsii.String("updateFeedQueue"), &awssqs.QueueProps{
-    //     QueueName: jsii.String(common.UpdateFeedQueue),
-    //     VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    // })
+	// publishing topic
+	publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
+		TopicName: jsii.String("publishing-topic"),
+	})
 
-    // publishing topic
-    publishingTopic := awssns.NewTopic(stack, jsii.String("PublishingTopic"), &awssns.TopicProps{
-        TopicName: jsii.String("publishing-topic"),
-    })
-
-    // notification queue
-    notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
-        QueueName: jsii.String("notification-queue"),
-        VisibilityTimeout:    awscdk.Duration_Minutes(jsii.Number(15)),
-    })
-    publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
-
+	// notification queue
+	notificationQueue := awssqs.NewQueue(stack, jsii.String("NotificationQueue"), &awssqs.QueueProps{
+		QueueName:         jsii.String("notification-queue"),
+		VisibilityTimeout: awscdk.Duration_Minutes(jsii.Number(15)),
+	})
+	publishingTopic.AddSubscription(awssnssubscriptions.NewSqsSubscription(notificationQueue, nil))
 
 	// Create a Cognito User Pool
 	userPool := awscognito.NewUserPool(stack, jsii.String("ArgonUserPool"), &awscognito.UserPoolProps{
@@ -209,15 +207,15 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		UserPoolId: userPool.UserPoolId(),
 	})
 
-    adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
-        Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-        Handler: jsii.String("main"),
-        Code: awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
-        Environment: &map[string]*string{
-            "COGNITO_USER_POOL_ID": userPool.UserPoolId(),
-        },
-    })
-    userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
+	adminAuthorizerLambda := awslambda.NewFunction(stack, jsii.String("AdminAuthorizerFunction"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-admin-authorizer/function.zip"), &awss3assets.AssetOptions{}),
+		Environment: &map[string]*string{
+			"COGNITO_USER_POOL_ID": userPool.UserPoolId(),
+		},
+	})
+	userPool.Grant(adminAuthorizerLambda, aws.String("cognito-idp:AdminListGroupsForUser"))
 
 	userPoolAuthorizer := awsapigateway.NewCognitoUserPoolsAuthorizer(stack, jsii.String("userPoolAuthorizer"), &awsapigateway.CognitoUserPoolsAuthorizerProps{
 		CognitoUserPools: &[]awscognito.IUserPool{userPool},
@@ -282,23 +280,21 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Description: jsii.String("show-table"),
 	})
 
-
-    // update user feed lambda
-    updateUserFeedLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserFeedLambda"), &awslambda.FunctionProps{
-        Runtime:    awslambda.Runtime_PROVIDED_AL2023(),
-        Handler:    jsii.String("main"),
-        Code:       awslambda.Code_FromAsset(jsii.String("../lambda-update-user-feed/function.zip"), &awss3assets.AssetOptions{}),
-        Timeout:    awscdk.Duration_Minutes(jsii.Number(10)),
-    })
-    updateUserFeedLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(updateFeedQueue, &awslambdaeventsources.SqsEventSourceProps{
-        BatchSize: jsii.Number(10),
-    }))
-    updateFeedQueue.GrantConsumeMessages(updateUserFeedLambda)
-    userFeedTable.GrantReadWriteData(updateUserFeedLambda)
-    userPreferenceTable.GrantReadData(updateUserFeedLambda)
-    movieTable.GrantReadData(updateUserFeedLambda)
-    showTable.GrantReadData(updateUserFeedLambda)
-
+	// update user feed lambda
+	updateUserFeedLambda := awslambda.NewFunction(stack, jsii.String("UpdateUserFeedLambda"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-user-feed/function.zip"), &awss3assets.AssetOptions{}),
+		Timeout: awscdk.Duration_Minutes(jsii.Number(10)),
+	})
+	updateUserFeedLambda.AddEventSource(awslambdaeventsources.NewSqsEventSource(updateFeedQueue, &awslambdaeventsources.SqsEventSourceProps{
+		BatchSize: jsii.Number(10),
+	}))
+	updateFeedQueue.GrantConsumeMessages(updateUserFeedLambda)
+	userFeedTable.GrantReadWriteData(updateUserFeedLambda)
+	userPreferenceTable.GrantReadData(updateUserFeedLambda)
+	movieTable.GrantReadData(updateUserFeedLambda)
+	showTable.GrantReadData(updateUserFeedLambda)
 
 	// Subscription table
 	subscriptionTable := awsdynamodb.NewTable(stack, jsii.String("subscription-table"), &awsdynamodb.TableProps{
@@ -467,7 +463,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-video-movie/function.zip"), &awss3assets.AssetOptions{}),
 	})
 	videoBucket.GrantRead(getMovieLambda, jsii.String("*"))
-    preferenceUpdateQueue.GrantSendMessages(getMovieLambda)
+	preferenceUpdateQueue.GrantSendMessages(getMovieLambda)
 	videoBucket.GrantPut(postMovieLambda, jsii.String("*"))
 	videoBucket.GrantDelete(deleteMovieLambda, jsii.String("*"))
 	videoBucket.GrantReadWrite(updateMovieVideo, jsii.String("*"))
@@ -498,7 +494,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 		Code:    awslambda.Code_FromAsset(jsii.String("../lambda-update-video-show/function.zip"), &awss3assets.AssetOptions{}),
 	})
 	videoBucket.GrantRead(getShowLambda, jsii.String("*"))
-    preferenceUpdateQueue.GrantSendMessages(getShowLambda)
+	preferenceUpdateQueue.GrantSendMessages(getShowLambda)
 	videoBucket.GrantPut(postShowLambda, jsii.String("*"))
 	videoBucket.GrantDelete(deleteShowLambda, jsii.String("*"))
 	videoBucket.GrantReadWrite(updateShowVideo, jsii.String("*"))
@@ -520,7 +516,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			),
 		},
 	)
-    preferenceUpdateQueue.GrantSendMessages(queueSubscriptionLambda)
+	preferenceUpdateQueue.GrantSendMessages(queueSubscriptionLambda)
 	subscribeLambda := awslambda.NewFunction(stack, jsii.String("Subscribe"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("main"),
@@ -541,7 +537,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 			),
 		},
 	)
-    preferenceUpdateQueue.GrantSendMessages(queueUnsubscriptionLambda)
+	preferenceUpdateQueue.GrantSendMessages(queueUnsubscriptionLambda)
 	unsubscribeLambda := awslambda.NewFunction(stack, jsii.String("Unsubscribe"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("main"),
@@ -601,7 +597,7 @@ func NewArgonStack(scope constructs.Construct, id string, props *awscdk.StackPro
 	movieTable.GrantReadData(reviewLambda)
 	showTable.GrantReadData(reviewLambda)
 	reviewTable.GrantWriteData(reviewLambda)
-    preferenceUpdateQueue.GrantSendMessages(queueReviewLambda)
+	preferenceUpdateQueue.GrantSendMessages(queueReviewLambda)
 
 	// Edit metadata Lambdas
 	queueEditMetadataLambda := awslambda.NewFunction(
